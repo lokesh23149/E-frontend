@@ -17,7 +17,14 @@ const ProductDetails = () => {
       <div className="container mx-auto p-4">
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <img src={product.image} alt={product.name} className="w-full h-96 object-cover rounded-md" />
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-96 object-cover rounded-md"
+              onError={(e) => {
+                e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Available';
+              }}
+            />
             <div>
               <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
               <p className="text-gray-600 mb-4">{product.description}</p>

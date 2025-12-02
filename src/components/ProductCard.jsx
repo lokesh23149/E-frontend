@@ -46,7 +46,14 @@ const ProductCard = ({ product }) => {
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
       <div className="relative">
-        <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-48 object-cover"
+          onError={(e) => {
+            e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Available';
+          }}
+        />
         <div className="absolute top-2 right-2">
           <button className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors">
             <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
