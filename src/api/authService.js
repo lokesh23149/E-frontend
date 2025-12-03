@@ -1,22 +1,22 @@
-import api from './axios';
-
 export const authService = {
   login: async (credentials) => {
-    const response = await api.post('/auth/login', credentials);
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+    // Mock login - in a real app, this would call an API
+    if (credentials.email === 'admin@gym.com' && credentials.password === 'password') {
+      const user = { id: 1, email: credentials.email, name: 'Gym Admin' };
+      localStorage.setItem('token', 'mock-token');
+      localStorage.setItem('user', JSON.stringify(user));
+      return { user, token: 'mock-token' };
+    } else {
+      throw new Error('Invalid credentials');
     }
-    return response.data;
   },
 
   register: async (userData) => {
-    const response = await api.post('/auth/register', userData);
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-    }
-    return response.data;
+    // Mock register - in a real app, this would call an API
+    const user = { id: Date.now(), email: userData.email, name: userData.name };
+    localStorage.setItem('token', 'mock-token');
+    localStorage.setItem('user', JSON.stringify(user));
+    return { user, token: 'mock-token' };
   },
 
   logout: () => {
@@ -30,15 +30,10 @@ export const authService = {
   },
 
   isAuthenticated: () => {
-    const token = localStorage.getItem('token');
-    return !!token;
+    return !!localStorage.getItem('token');
   },
 
-  refreshToken: async () => {
-    const response = await api.post('/auth/refresh');
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-    }
-    return response.data;
+  getToken: () => {
+    return localStorage.getItem('token');
   },
 };

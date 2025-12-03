@@ -1,40 +1,79 @@
-import api from './axios';
+import products from '../data/products';
 
 export const productService = {
   getAllProducts: async (params = {}) => {
-    const response = await api.get('/products', { params });
-    return response.data;
+    let filteredProducts = [...products];
+
+    // Apply category filter
+    if (params.category && params.category !== 'all') {
+      filteredProducts = filteredProducts.filter(product =>
+        product.category.toLowerCase() === params.category.toLowerCase()
+      );
+    }
+
+    // Apply search filter
+    if (params.q) {
+      filteredProducts = filteredProducts.filter(product =>
+        product.name.toLowerCase().includes(params.q.toLowerCase()) ||
+        product.description.toLowerCase().includes(params.q.toLowerCase())
+      );
+    }
+
+    // Apply limit
+    if (params.limit) {
+      filteredProducts = filteredProducts.slice(0, params.limit);
+    }
+
+    return { products: filteredProducts };
   },
 
   getProductById: async (id) => {
-    const response = await api.get(`/products/${id}`);
-    return response.data;
+    const product = products.find(p => p.id === parseInt(id));
+    if (!product) {
+      throw new Error('Product not found');
+    }
+    return product;
   },
 
   getProductsByCategory: async (category) => {
-    const response = await api.get(`/products/category/${category}`);
-    return response.data;
+    const filteredProducts = products.filter(product =>
+      product.category.toLowerCase() === category.toLowerCase()
+    );
+    return { products: filteredProducts };
   },
 
   searchProducts: async (query) => {
-    const response = await api.get('/products/search', {
-      params: { q: query }
-    });
-    return response.data;
+    const filteredProducts = products.filter(product =>
+      product.name.toLowerCase().includes(query.toLowerCase()) ||
+      product.description.toLowerCase().includes(query.toLowerCase())
+    );
+    return { products: filteredProducts };
   },
 
   createProduct: async (productData) => {
-    const response = await api.post('/products', productData);
-    return response.data;
+    const newProduct = {
+      id: products.length + 1,
+      ...productData
+    };
+    products.push(newProduct);
+    return newProduct;
   },
 
   updateProduct: async (id, productData) => {
-    const response = await api.put(`/products/${id}`, productData);
-    return response.data;
+    const index = products.findIndex(p => p.id === parseInt(id));
+    if (index === -1) {
+      throw new Error('Product not found');
+    }
+    products[index] = { ...products[index], ...productData };
+    return products[index];
   },
 
   deleteProduct: async (id) => {
-    const response = await api.delete(`/products/${id}`);
-    return response.data;
+    const index = products.findIndex(p => p.id === parseInt(id));
+    if (index === -1) {
+      throw new Error('Product not found');
+    }
+    const deletedProduct = products.splice(index, 1)[0];
+    return deletedProduct;
   },
 };

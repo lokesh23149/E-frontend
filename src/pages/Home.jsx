@@ -33,17 +33,21 @@ const Home = () => {
   ];
 
   const categories = [
-    { name: 'Electronics', image: '/category-electronics.jpg', count: 120 },
-    { name: 'Clothing', image: '/category-clothing.jpg', count: 85 },
-    { name: 'Home & Garden', image: '/category-home.jpg', count: 95 },
-    { name: 'Sports', image: '/category-sports.jpg', count: 60 },
+    { name: 'Supplements', image: '/category-supplements.jpg', count: 45, icon: '💊' },
+    { name: 'Clothing', image: '/category-clothing.jpg', count: 85, icon: '👕' },
+    { name: 'Equipment', image: '/category-equipment.jpg', count: 120, icon: '🏋️' },
+    { name: 'Accessories', image: '/category-accessories.jpg', count: 60, icon: '🎽' },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 text-white">
-        <div className="absolute inset-0 bg-black/20" />
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 text-white" style={{
+        backgroundImage: `url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&h=1080&fit=crop')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}>
+        <div className="absolute inset-0 bg-black/50" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -119,7 +123,7 @@ const Home = () => {
             className="text-center mb-12"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Shop by Category
+              Gym Section
             </h2>
             <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               Explore our wide range of categories and find exactly what you're looking for.
@@ -141,7 +145,7 @@ const Home = () => {
                   <div className="relative h-32 mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300" />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-4xl">📦</span>
+                      <span className="text-4xl">{category.icon}</span>
                     </div>
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
