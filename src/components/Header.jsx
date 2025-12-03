@@ -16,7 +16,7 @@ const Header = () => {
   return (
     <header className="bg-white shadow-md">
       {/* Top bar */}
-      <div className="bg-blue-600 text-white py-2">
+      <div className="bg-customRed-600 text-white py-2">
         <div className="container mx-auto px-4 text-center text-sm">
           Free shipping on orders over $50 | 30-day return policy
         </div>

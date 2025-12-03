@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+@theme {
+  --color-customRed-500: oklch(0.704 0.191 22.216);
+  --color-customRed-600: oklch(0.65 0.191 22.216);
+  --color-customRed-700: oklch(0.6 0.191 22.216);
+}
+
+
+
+
 /* Custom base styles */
 @layer base {
   html {
@@ -14,7 +23,7 @@
 /* Custom component styles */
 @layer components {
   .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+    @apply bg-customRed-600 hover:bg-customRed-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-customRed-500 focus:ring-offset-2;
   }
 
   .btn-secondary {
@@ -22,7 +31,7 @@
   }
 
   .btn-outline {
-    @apply border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+    @apply border border-customRed-600 text-customRed-600 hover:bg-customRed-600 hover:text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-customRed-500 focus:ring-offset-2;
   }
 
   .card {
@@ -30,11 +39,11 @@
   }
 
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customRed-500 focus:border-transparent;
   }
 
   .nav-link {
-    @apply text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200;
+    @apply text-gray-700 hover:text-customRed-600 font-medium transition-colors duration-200;
   }
 }
 
@@ -45,7 +54,7 @@
   }
 
   .bg-gradient-primary {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   }
 
   .bg-gradient-secondary {
@@ -63,4 +72,25 @@
   .shadow-hard {
     box-shadow: 0 8px 40px rgba(0,0,0,0.16);
   }
+}
+
+/* Custom animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 1s ease-out;
+}
+
+/* Dark mode support */
+.dark {
+  color-scheme: dark;
 }
