@@ -9,21 +9,51 @@ import { productService } from '../api/productService';
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
       try {
         const response = await productService.getAllProducts({ limit: 8 });
         setFeaturedProducts(response.products || []);
+        setError(null);
       } catch (error) {
         console.error('Error fetching products:', error);
+        setError('Unable to load products. Please check if the backend is running.');
+        setFeaturedProducts([]); // Ensure it's an empty array
       } finally {
         setLoading(false);
       }
     };
 
+    const fetchCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const categoriesData = await productService.getCategories();
+        const allProducts = await productService.getAllProducts();
+        // Transform categories to include icon and count for display
+        const transformedCategories = categoriesData.map((category, index) => {
+          const count = allProducts.products.filter(product => product.category === category).length;
+          return {
+            name: category,
+            icon: ['🏃', '💪', '🏋️', '🥊'][index % 4], // Cycle through some gym-related emojis
+            count: count
+          };
+        });
+        setCategories(transformedCategories || []);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setCategories([]); // Fallback to empty array
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
     fetchFeaturedProducts();
+    fetchCategories();
   }, []);
 
   const stats = [
@@ -32,12 +62,7 @@ const Home = () => {
     { icon: FiStar, value: '4.8', label: 'Rating' },
   ];
 
-  const categories = [
-    { name: 'Supplements', image: '/category-supplements.jpg', count: 45, icon: '💊' },
-    { name: 'Clothing', image: '/category-clothing.jpg', count: 85, icon: '👕' },
-    { name: 'Equipment', image: '/category-equipment.jpg', count: 120, icon: '🏋️' },
-    { name: 'Accessories', image: '/category-accessories.jpg', count: 60, icon: '🎽' },
-  ];
+
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -131,7 +156,18 @@ const Home = () => {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category, index) => (
+            {categoriesLoading ? (
+              Array(4).fill(0).map((_, index) => (
+                <div key={index} className="animate-pulse">
+                  <Card className="text-center overflow-hidden">
+                    <div className="h-32 mb-4 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mx-auto mb-2"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16 mx-auto"></div>
+                  </Card>
+                </div>
+              ))
+            ) : (
+              categories.map((category, index) => (
               <motion.div
                 key={category.name}
                 initial={{ opacity: 0, y: 30 }}
@@ -141,22 +177,25 @@ const Home = () => {
                 whileHover={{ y: -8 }}
                 className="group cursor-pointer"
               >
-                <Card className="text-center overflow-hidden">
-                  <div className="relative h-32 mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-4xl">{category.icon}</span>
+                <Link to={`/products?category=${encodeURIComponent(category.name)}`}>
+                  <Card className="text-center overflow-hidden">
+                    <div className="relative h-32 mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-4xl">{category.icon}</span>
+                      </div>
                     </div>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    {category.name}
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    {category.count} products
-                  </p>
-                </Card>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                      {category.name}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                      {category.count} products
+                    </p>
+                  </Card>
+                </Link>
               </motion.div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -181,6 +220,13 @@ const Home = () => {
 
           {loading ? (
             <Loader className="py-16" />
+          ) : error ? (
+            <div className="text-center py-16">
+              <div className="text-red-500 text-lg mb-4">{error}</div>
+              <p className="text-gray-600 dark:text-gray-400">
+                Please ensure the backend server is running on localhost:8080
+              </p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {featuredProducts.map((product, index) => (

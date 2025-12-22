@@ -1,79 +1,106 @@
-import products from '../data/products';
+import api from './axios';
+
+const API_URL = "http://localhost:8080/api/products";
 
 export const productService = {
   getAllProducts: async (params = {}) => {
-    let filteredProducts = [...products];
+    try {
+      const queryParams = {
+        page: params.page || 0,
+        size: params.size || 12,
+        sortBy: params.sort || 'name'
+      };
 
-    // Apply category filter
-    if (params.category && params.category !== 'all') {
-      filteredProducts = filteredProducts.filter(product =>
-        product.category.toLowerCase() === params.category.toLowerCase()
-      );
+      // Add filter parameters
+      if (params.category) queryParams.category = params.category;
+      if (params.minPrice !== undefined) queryParams.minPrice = params.minPrice;
+      if (params.maxPrice !== undefined) queryParams.maxPrice = params.maxPrice;
+      if (params.minRating) queryParams.rating = params.minRating;
+      if (params.search) queryParams.keywords = params.search;
+
+      const response = await api.get(API_URL, { params: queryParams });
+
+      // Backend now returns structured response with pagination
+      const data = response.data;
+      const products = data.products || [];
+
+      return {
+        products: products.map(product => ({
+          ...product,
+          images: product.images || []
+        })),
+        totalElements: data.totalElements || 0,
+        totalPages: data.totalPages || 0,
+        currentPage: data.currentPage || 0,
+        size: data.size || 12
+      };
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      throw error;
     }
-
-    // Apply search filter
-    if (params.q) {
-      filteredProducts = filteredProducts.filter(product =>
-        product.name.toLowerCase().includes(params.q.toLowerCase()) ||
-        product.description.toLowerCase().includes(params.q.toLowerCase())
-      );
-    }
-
-    // Apply limit
-    if (params.limit) {
-      filteredProducts = filteredProducts.slice(0, params.limit);
-    }
-
-    return { products: filteredProducts };
   },
 
-  getProductById: async (id) => {
-    const product = products.find(p => p.id === parseInt(id));
-    if (!product) {
-      throw new Error('Product not found');
+  getCategories: async () => {
+    try {
+      const response = await api.get(`${API_URL}/categories`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      throw error;
     }
-    return product;
   },
 
   getProductsByCategory: async (category) => {
-    const filteredProducts = products.filter(product =>
-      product.category.toLowerCase() === category.toLowerCase()
-    );
-    return { products: filteredProducts };
+    try {
+      const response = await api.get(`${API_URL}/category/${category}`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching products by category:', error);
+      throw error;
+    }
   },
 
-  searchProducts: async (query) => {
-    const filteredProducts = products.filter(product =>
-      product.name.toLowerCase().includes(query.toLowerCase()) ||
-      product.description.toLowerCase().includes(query.toLowerCase())
-    );
-    return { products: filteredProducts };
+  getProductById: async (id) => {
+    try {
+      const response = await api.get(`${API_URL}/${id}`);
+      const product = response.data;
+      return {
+        ...product,
+        images: product.images || []
+      };
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      throw error;
+    }
   },
 
   createProduct: async (productData) => {
-    const newProduct = {
-      id: products.length + 1,
-      ...productData
-    };
-    products.push(newProduct);
-    return newProduct;
+    try {
+      const response = await api.post(API_URL, productData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating product:', error);
+      throw error;
+    }
   },
 
   updateProduct: async (id, productData) => {
-    const index = products.findIndex(p => p.id === parseInt(id));
-    if (index === -1) {
-      throw new Error('Product not found');
+    try {
+      const response = await api.put(`${API_URL}/${id}`, productData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating product:', error);
+      throw error;
     }
-    products[index] = { ...products[index], ...productData };
-    return products[index];
   },
 
   deleteProduct: async (id) => {
-    const index = products.findIndex(p => p.id === parseInt(id));
-    if (index === -1) {
-      throw new Error('Product not found');
+    try {
+      const response = await api.delete(`${API_URL}/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      throw error;
     }
-    const deletedProduct = products.splice(index, 1)[0];
-    return deletedProduct;
   },
 };

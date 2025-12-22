@@ -4,59 +4,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiMinus, FiPlus, FiTrash2, FiShoppingBag } from 'react-icons/fi';
 import Card from '../components/Card';
 import Loader from '../components/Loader';
+import { useCart } from '../hooks/useCart';
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState([]);
+  const { cart, removeFromCart, updateQuantity } = useCart();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call to fetch cart items
-    const fetchCartItems = async () => {
-      setLoading(true);
-      try {
-        // Mock data - replace with actual cart API
-        setCartItems([
-          {
-            id: 1,
-            name: 'Premium Wireless Headphones',
-            price: 299.99,
-            image: '/placeholder-product.jpg',
-            quantity: 2,
-            maxQuantity: 10,
-          },
-          {
-            id: 2,
-            name: 'Smart Watch Series X',
-            price: 399.99,
-            image: '/placeholder-product.jpg',
-            quantity: 1,
-            maxQuantity: 5,
-          },
-        ]);
-      } catch (error) {
-        console.error('Error fetching cart items:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCartItems();
+    // Simulate loading for cart itemsorie 
+    setLoading(false);
   }, []);
 
-  const updateQuantity = (id, newQuantity) => {
-    if (newQuantity < 1) return;
-
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id
-          ? { ...item, quantity: Math.min(newQuantity, item.maxQuantity) }
-          : item
-      )
-    );
-  };
-
   const removeItem = (id) => {
-    setCartItems(items => items.filter(item => item.id !== id));
+    removeFromCart(id);
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -68,7 +28,7 @@ const Cart = () => {
     return <Loader className="py-16" />;
   }
 
-  if (cartItems.length === 0) {
+  if (cart.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <motion.div
@@ -111,7 +71,7 @@ const Cart = () => {
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               <AnimatePresence>
-                {cartItems.map((item, index) => (
+            {cart.map((item, index) => (
                   <motion.div
                     key={item.id}
                     layout
@@ -140,7 +100,7 @@ const Cart = () => {
                             {item.name}
                           </h3>
                           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                            ${item.price}
+                            INR ${item.price}
                           </p>
                         </div>
 
@@ -179,7 +139,7 @@ const Cart = () => {
                         {/* Item Total */}
                         <div className="text-right">
                           <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                            ${(item.price * item.quantity).toFixed(2)}
+                            INR ${(item.price * item.quantity).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -200,21 +160,21 @@ const Cart = () => {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
                     <span className="text-gray-900 dark:text-gray-100 font-medium">
-                      ${subtotal.toFixed(2)}
+                      INR ${subtotal.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Shipping</span>
                     <span className="text-gray-900 dark:text-gray-100 font-medium">
-                      {shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}
+                      {shipping === 0 ? 'Free' : `INR $${shipping.toFixed(2)}`}
                     </span>
                   </div>
 
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Tax</span>
                     <span className="text-gray-900 dark:text-gray-100 font-medium">
-                      ${tax.toFixed(2)}
+                      INR ${tax.toFixed(2)}
                     </span>
                   </div>
 
@@ -222,7 +182,7 @@ const Cart = () => {
                     <div className="flex justify-between text-lg font-semibold">
                       <span className="text-gray-900 dark:text-gray-100">Total</span>
                       <span className="text-gray-900 dark:text-gray-100">
-                        ${total.toFixed(2)}
+                        INR ${total.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -248,7 +208,7 @@ const Cart = () => {
                 {subtotal < 100 && (
                   <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <p className="text-sm text-blue-600 dark:text-blue-400">
-                      Add ${(100 - subtotal).toFixed(2)} more for free shipping!
+                      Add INR ${(100 - subtotal).toFixed(2)} more for free shipping!
                     </p>
                   </div>
                 )}

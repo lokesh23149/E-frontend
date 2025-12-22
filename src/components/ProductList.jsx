@@ -7,6 +7,8 @@ import Loader from './Loader';
 import { productService } from '../api/productService';
 
 const ProductList = ({ category, searchQuery, sortBy = 'name' }) => {
+
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('grid');

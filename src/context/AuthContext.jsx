@@ -38,13 +38,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (userData) => {
-    try {
-      const response = await authService.register(userData);
-      setUser(response.user);
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await authService.register(userData);
+    setUser(response.user);
+    return response;
   };
 
   const logout = () => {

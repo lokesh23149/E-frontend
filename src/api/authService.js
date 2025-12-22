@@ -1,22 +1,53 @@
+import api from './axios';
+
 export const authService = {
   login: async (credentials) => {
-    // Mock login - in a real app, this would call an API
-    if (credentials.email === 'admin@gym.com' && credentials.password === 'password') {
-      const user = { id: 1, email: credentials.email, name: 'Gym Admin' };
-      localStorage.setItem('token', 'mock-token');
+    try {
+      // Backend expects username and password, but frontend sends email and password
+      // Assuming email is used as username for now
+      const loginData = {
+        username: credentials.email,
+        password: credentials.password
+      };
+
+      const response = await api.post('/auth/login', loginData);
+      const { token } = response.data;
+
+      // For now, create a basic user object since backend doesn't return user details
+      const user = { id: 1, email: credentials.email, name: 'User' };
+
+      localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      return { user, token: 'mock-token' };
-    } else {
-      throw new Error('Invalid credentials');
+
+      return { user, token };
+    } catch (error) {
+      console.error('Login error:', error);
+      throw new Error(error.response?.data?.error || 'Login failed');
     }
   },
 
   register: async (userData) => {
-    // Mock register - in a real app, this would call an API
-    const user = { id: Date.now(), email: userData.email, name: userData.name };
-    localStorage.setItem('token', 'mock-token');
-    localStorage.setItem('user', JSON.stringify(user));
-    return { user, token: 'mock-token' };
+    try {
+      const registerData = {
+        name: userData.name,
+        gmail: userData.email,
+        username: userData.email, // Using email as username
+        password: userData.password
+      };
+
+      const response = await api.post('/api/users', registerData);
+
+      // After registration, automatically log in
+      const loginResponse = await authService.login({
+        email: userData.email,
+        password: userData.password
+      });
+
+      return loginResponse;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw new Error(error.response?.data?.message || 'Registration failed');
+    }
   },
 
   logout: () => {

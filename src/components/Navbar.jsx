@@ -4,14 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiSearch, FiMenu, FiX, FiShoppingCart, FiUser } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useCart } from '../hooks/useCart';
 import ThemeToggle from './ThemeToggle';
 
 const Navbar = ({ onMenuToggle }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
-  const { isDarkMode } = useTheme();
+  const { isAuthenticated } = useAuth();
 
   const navItems = [
     { name: 'Home', path: '/' },
@@ -39,7 +39,8 @@ const Navbar = ({ onMenuToggle }) => {
               whileHover={{ scale: 1.05 }}
               className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
             >
-              EcomStore
+          
+            FITKART
             </motion.div>
           </Link>
 
@@ -75,12 +76,15 @@ const Navbar = ({ onMenuToggle }) => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/cart')}
               className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-200 relative"
             >
               <FiShoppingCart className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                0
-              </span>
+              {useCart().cart.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {useCart().cart.length}
+                </span>
+              )}
             </motion.button>
 
             {/* User Menu */}

@@ -1,26 +1,37 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiFilter, FiGrid, FiList, FiSliders } from 'react-icons/fi';
+import { FiFilter, FiGrid, FiList, FiSliders, FiPackage, FiSearch } from 'react-icons/fi';
 import ProductCard from '../components/ProductCard';
 import Card from '../components/Card';
 import Loader from '../components/Loader';
 import { productService } from '../api/productService';
 
 const Products = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const { category } = useParams();
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [filters, setFilters] = useState({
-    category: searchParams.get('category') || 'all',
-    priceRange: [0, 1000],
+    categories: category ? [category] : searchParams.get('category') ? [searchParams.get('category')] : [],
+    minPrice: 0,
+    maxPrice: 1000,
     rating: 0,
     sortBy: 'name',
   });
   const [viewMode, setViewMode] = useState('grid');
   const [showFilters, setShowFilters] = useState(false);
-
-  const categories = ['all', 'electronics', 'clothing', 'home', 'sports', 'books'];
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 0,
+    totalPages: 0,
+    totalElements: 0,
+    size: 12
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const sortOptions = [
     { value: 'name', label: 'Name A-Z' },
     { value: '-name', label: 'Name Z-A' },
@@ -30,38 +41,87 @@ const Products = () => {
   ];
 
   useEffect(() => {
+    const fetchCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const categoriesData = await productService.getCategories();
+        setCategories(categoriesData || []);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setCategories([]); // Fallback to empty array
+        setError('Failed to load categories. Please try again later.');
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
+      setError(null);
       try {
         const params = {
-          category: filters.category !== 'all' ? filters.category : undefined,
-          minPrice: filters.priceRange[0],
-          maxPrice: filters.priceRange[1],
+          page: pagination.currentPage,
+          size: pagination.size,
+          category: filters.categories.length > 0 ? filters.categories.join(',') : undefined,
+          minPrice: filters.minPrice,
+          maxPrice: filters.maxPrice,
           minRating: filters.rating,
           sort: filters.sortBy,
-          search: searchParams.get('search'),
+          search: debouncedSearchTerm,
         };
 
         const response = await productService.getAllProducts(params);
         setProducts(response.products || []);
+        setPagination({
+          currentPage: response.currentPage || 0,
+          totalPages: response.totalPages || 0,
+          totalElements: response.totalElements || 0,
+          size: response.size || 12
+        });
       } catch (error) {
         console.error('Error fetching products:', error);
+        setError('Failed to load products. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [filters, searchParams]);
+  }, [filters, searchParams, pagination.currentPage]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+    // Reset to first page when filters change
+    setPagination(prev => ({ ...prev, currentPage: 0 }));
+  };
+
+  const handleCategoryChange = (category) => {
+    setFilters(prev => {
+      const newCategories = prev.categories.includes(category)
+        ? prev.categories.filter(c => c !== category)
+        : [...prev.categories, category];
+      return { ...prev, categories: newCategories };
+    });
   };
 
   const clearFilters = () => {
     setFilters({
-      category: 'all',
-      priceRange: [0, 1000],
+      categories: [],
+      minPrice: 0,
+      maxPrice: 1000,
       rating: 0,
       sortBy: 'name',
     });
@@ -113,28 +173,37 @@ const Products = () => {
 
                     {/* Filter Content */}
                     <div className="space-y-6">
-                      {/* Category Filter */}
+                    {/* Category Filter */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                           Category
                         </label>
-                        <div className="space-y-2">
-                          {categories.map((category) => (
-                            <label key={category} className="flex items-center">
-                              <input
-                                type="radio"
-                                name="category"
-                                value={category}
-                                checked={filters.category === category}
-                                onChange={(e) => handleFilterChange('category', e.target.value)}
-                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                              />
-                              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300 capitalize">
-                                {category}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
+                        {categoriesLoading ? (
+                          <div className="space-y-2">
+                            {[1, 2, 3, 4].map((i) => (
+                              <div key={i} className="animate-pulse">
+                                <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-24"></div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {categories.map((category) => (
+                              <label key={category} className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  value={category}
+                                  checked={filters.categories.includes(category)}
+                                  onChange={() => handleCategoryChange(category)}
+                                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                />
+                                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300 capitalize">
+                                  {category}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Price Range */}
@@ -142,18 +211,30 @@ const Products = () => {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                           Price Range
                         </label>
-                        <div className="px-2">
-                          <input
-                            type="range"
-                            min="0"
-                            max="1000"
-                            value={filters.priceRange[1]}
-                            onChange={(e) => handleFilterChange('priceRange', [0, parseInt(e.target.value)])}
-                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                          />
-                          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            <span>$0</span>
-                            <span>${filters.priceRange[1]}</span>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Min Price</label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="1000"
+                              value={filters.minPrice}
+                              onChange={(e) => handleFilterChange('minPrice', parseInt(e.target.value))}
+                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                            />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">INR ${filters.minPrice}</span>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Max Price</label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="1000"
+                              value={filters.maxPrice}
+                              onChange={(e) => handleFilterChange('maxPrice', parseInt(e.target.value))}
+                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                            />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">INR ${filters.maxPrice}</span>
                           </div>
                         </div>
                       </div>
@@ -212,11 +293,10 @@ const Products = () => {
                     {categories.map((category) => (
                       <label key={category} className="flex items-center">
                         <input
-                          type="radio"
-                          name="category"
+                          type="checkbox"
                           value={category}
-                          checked={filters.category === category}
-                          onChange={(e) => handleFilterChange('category', e.target.value)}
+                          checked={filters.categories.includes(category)}
+                          onChange={() => handleCategoryChange(category)}
                           className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                         />
                         <span className="ml-2 text-sm text-gray-700 dark:text-gray-300 capitalize">
@@ -232,18 +312,30 @@ const Products = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                     Price Range
                   </label>
-                  <div className="px-2">
-                    <input
-                      type="range"
-                      min="0"
-                      max="1000"
-                      value={filters.priceRange[1]}
-                      onChange={(e) => handleFilterChange('priceRange', [0, parseInt(e.target.value)])}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                    />
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      <span>$0</span>
-                      <span>${filters.priceRange[1]}</span>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Min Price</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1000"
+                        value={filters.minPrice}
+                        onChange={(e) => handleFilterChange('minPrice', parseInt(e.target.value))}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                      />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">INR ${filters.minPrice}</span>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Max Price</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1000"
+                        value={filters.maxPrice}
+                        onChange={(e) => handleFilterChange('maxPrice', parseInt(e.target.value))}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                      />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">INR ${filters.maxPrice}</span>
                     </div>
                   </div>
                 </div>
@@ -295,8 +387,19 @@ const Products = () => {
                 </button>
 
                 <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {products.length} products found
+                  {pagination.totalElements} products found (Page {pagination.currentPage + 1} of {pagination.totalPages})
                 </span>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <FiSearch className="w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100"
+                />
               </div>
 
               <div className="flex items-center space-x-4">
@@ -342,6 +445,26 @@ const Products = () => {
             {/* Products */}
             {loading ? (
               <Loader className="py-16" />
+            ) : error ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-16"
+              >
+                <FiPackage className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Error Loading Products
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  {error}
+                </p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                >
+                  Try Again
+                </button>
+              </motion.div>
             ) : products.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -377,6 +500,33 @@ const Products = () => {
                   </motion.div>
                 ))}
               </motion.div>
+            )}
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="mt-8 flex justify-center">
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.max(0, prev.currentPage - 1) }))}
+                    disabled={pagination.currentPage === 0}
+                    className="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                  >
+                    Previous
+                  </button>
+
+                  <span className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                    Page {pagination.currentPage + 1} of {pagination.totalPages}
+                  </span>
+
+                  <button
+                    onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.min(prev.totalPages - 1, prev.currentPage + 1) }))}
+                    disabled={pagination.currentPage === pagination.totalPages - 1}
+                    className="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>

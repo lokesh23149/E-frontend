@@ -47,7 +47,8 @@ const Footer = () => {
             >
               <Link to="/" className="flex items-center space-x-2 mb-4">
                 <div className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  EcomStore
+
+                FITKART
                 </div>
               </Link>
               <p className="text-gray-400 mb-6 max-w-md">
@@ -63,11 +64,11 @@ const Footer = () => {
                 </div>
                 <div className="flex items-center space-x-3 text-gray-400">
                   <FiPhone className="w-5 h-5 text-blue-400" />
-                  <span className="text-sm">+1 (555) 123-4567</span>
+                  <span className="text-sm">+91 9361719237</span>
                 </div>
                 <div className="flex items-center space-x-3 text-gray-400">
                   <FiMail className="w-5 h-5 text-blue-400" />
-                  <span className="text-sm">support@ecomstore.com</span>
+                  <span className="text-sm">lokiloki4693@gmail.com</span>
                 </div>
               </div>
             </motion.div>

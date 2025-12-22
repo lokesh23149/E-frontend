@@ -16,9 +16,9 @@ const Header = () => {
   return (
     <header className="bg-white shadow-md">
       {/* Top bar */}
-      <div className="bg-customRed-600 text-white py-2">
+      <div className="bg-red-600 text-white py-2">
         <div className="container mx-auto px-4 text-center text-sm">
-          Free shipping on orders over $50 | 30-day return policy
+          Free shipping on orders over INR $50 | 30-day return policy
         </div>
       </div>
 
@@ -27,7 +27,7 @@ const Header = () => {
         <div className="flex justify-between items-center">
           {/* Logo */}
           <Link to="/" className="text-3xl font-bold text-blue-600">
-            EcomStore
+        FITKART
           </Link>
 
           {/* Search bar */}
@@ -66,10 +66,10 @@ const Header = () => {
               </button>
               {isMenuOpen && (
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                  <Link to="/category/electronics" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Electronics</Link>
+                  <Link to="/category/Supplements" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Supplements</Link>
                   <Link to="/category/clothing" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Clothing</Link>
-                  <Link to="/category/books" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Books</Link>
-                  <Link to="/category/home" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Home & Garden</Link>
+                  <Link to="/category/Equipment" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Equipment</Link>
+                  <Link to="/category/Accessories" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Accessories</Link>
                 </div>
               )}
             </div>
