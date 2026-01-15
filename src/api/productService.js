@@ -17,6 +17,7 @@ export const productService = {
       if (params.maxPrice !== undefined) queryParams.maxPrice = params.maxPrice;
       if (params.minRating) queryParams.rating = params.minRating;
       if (params.search) queryParams.keywords = params.search;
+      if (params.limit) queryParams.size = params.limit; // Support limit parameter
 
       const response = await api.get(API_URL, { params: queryParams });
 
@@ -25,10 +26,19 @@ export const productService = {
       const products = data.products || [];
 
       return {
-        products: products.map(product => ({
-          ...product,
-          images: product.images || []
-        })),
+        products: products.map(product => {
+          const mappedImages = (product.images || []).map(img => ({
+            ...img,
+            url: img.url.startsWith('http') ? img.url : `http://localhost:8080${img.url}`
+          }));
+          return {
+            ...product,
+            description: product.discripsion, // Map discripsion to description
+            reviewCount: product.numofreviews, // Map numofreviews to reviewCount
+            images: mappedImages,
+            image: mappedImages[0]?.url || '/placeholder-product.jpg'
+          };
+        }),
         totalElements: data.totalElements || 0,
         totalPages: data.totalPages || 0,
         currentPage: data.currentPage || 0,
@@ -62,10 +72,21 @@ export const productService = {
 
   getProductById: async (id) => {
     try {
+      // Validate product ID before API call
+      if (!id || id.trim() === '' || isNaN(id)) {
+        throw new Error('Invalid product ID');
+      }
+
       const response = await api.get(`${API_URL}/${id}`);
       const product = response.data;
+      if (!product || !product.id) {
+        throw new Error('Product not found');
+      }
       return {
         ...product,
+        description: product.discripsion, // Map discripsion to description
+        reviewCount: product.numofreviews, // Map numofreviews to reviewCount
+        reviews: product.reviews || [], // Map reviews
         images: product.images || []
       };
     } catch (error) {

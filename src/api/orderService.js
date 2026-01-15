@@ -6,7 +6,7 @@ export const orderService = {
   createOrder: async (orderData) => {
     try {
       const response = await api.post(API_URL, orderData);
-      
+
          return response.data;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -20,6 +20,16 @@ export const orderService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching order:', error);
+      throw error;
+    }
+  },
+
+  getUserOrders: async () => {
+    try {
+      const response = await api.get(API_URL);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user orders:', error);
       throw error;
     }
   },

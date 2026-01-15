@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiGrid, FiList, FiFilter } from 'react-icons/fi';
 import ProductCard from './ProductCard';
+import ProductSkeleton from './ProductSkeleton';
 import Card from './Card';
 import Loader from './Loader';
 import { productService } from '../api/productService';
@@ -41,7 +42,20 @@ const ProductList = ({ category, searchQuery, sortBy = 'name' }) => {
   }, [products]);
 
   if (loading) {
-    return <Loader className="py-16" />;
+    return (
+      <motion.div
+        layout
+        className={`grid gap-8 ${
+          viewMode === 'grid'
+            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+            : 'grid-cols-1 gap-6'
+        }`}
+      >
+        {Array.from({ length: 8 }).map((_, index) => (
+          <ProductSkeleton key={index} />
+        ))}
+      </motion.div>
+    );
   }
 
   return (
@@ -84,34 +98,40 @@ const ProductList = ({ category, searchQuery, sortBy = 'name' }) => {
       {/* Products Grid/List */}
       {filteredProducts.length === 0 ? (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-16"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center py-20"
         >
-          <div className="text-6xl mb-4">🔍</div>
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          <div className="text-7xl mb-6 opacity-50">🔍</div>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
             No products found
           </h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            Try adjusting your search or filter criteria.
+          <p className="text-gray-500 dark:text-gray-400 text-lg max-w-md mx-auto">
+            Try adjusting your search or filter criteria to find what you're looking for.
           </p>
         </motion.div>
       ) : (
         <motion.div
           layout
-          className={`grid gap-6 ${
+          className={`grid gap-8 ${
             viewMode === 'grid'
-              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-              : 'grid-cols-1'
+              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+              : 'grid-cols-1 gap-6'
           }`}
         >
           {filteredProducts.map((product, index) => (
             <motion.div
               key={product.id}
               layout
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
+              transition={{
+                duration: 0.5,
+                delay: index * 0.05,
+                ease: "easeOut"
+              }}
+              className="h-fit"
             >
               <ProductCard product={product} />
             </motion.div>

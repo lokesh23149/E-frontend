@@ -7,10 +7,7 @@ import Card from '../components/Card';
 import Loader from '../components/Loader';
 
 const Login = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -19,10 +16,7 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
     if (error) setError('');
   };
 
@@ -32,8 +26,12 @@ const Login = () => {
     setError('');
 
     try {
-      await login(formData);
-      navigate('/dashboard');
+      // Login and store token/user automatically in AuthContext
+      const response = await login(formData);
+
+      console.log('Login successful:', response);
+
+      navigate('/products'); // redirect to products
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
@@ -59,9 +57,7 @@ const Login = () => {
             >
               Welcome Back
             </motion.h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Sign in to your account
-            </p>
+            <p className="text-gray-600 dark:text-gray-400">Sign in to your account</p>
           </div>
 
           {error && (
@@ -124,9 +120,7 @@ const Login = () => {
                   type="checkbox"
                   className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                 />
-                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                  Remember me
-                </span>
+                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Remember me</span>
               </label>
               <Link
                 to="/forgot-password"

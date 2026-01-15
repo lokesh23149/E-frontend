@@ -11,10 +11,7 @@ export const authService = {
       };
 
       const response = await api.post('/auth/login', loginData);
-      const { token } = response.data;
-
-      // For now, create a basic user object since backend doesn't return user details
-      const user = { id: 1, email: credentials.email, name: 'User' };
+      const { token, user } = response.data;
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));

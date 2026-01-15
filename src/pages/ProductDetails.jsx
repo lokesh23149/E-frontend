@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiHeart, FiShoppingCart, FiPlus, FiMinus, FiArrowLeft, FiStar, FiTruck, FiShield, FiRotateCcw } from 'react-icons/fi';
+import { FiArrowLeft, FiStar, FiMinus, FiPlus, FiShoppingCart, FiTruck, FiShield, FiRotateCcw, FiHeart } from 'react-icons/fi';
 import Card from '../components/Card';
-import Loader from '../components/Loader';
-import { productService } from '../api/productService';
+
+import Loader from '../components/Loader';import { productService } from '../api/productService';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../context/AuthContext';
+import { useWishlist } from '../context/WishlistContext';
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,7 +37,11 @@ const ProductDetails = () => {
         setProduct(productData);
       } catch (error) {
         console.error('Error fetching product:', error);
-        setError('Failed to load product details. Please try again later.');
+        if (error.response && error.response.status === 404) {
+          setError('Product not found.');
+        } else {
+          setError('Failed to load product details. Please try again later.');
+        }
       } finally {
         setLoading(false);
       }
@@ -50,6 +56,14 @@ const ProductDetails = () => {
     if (product && quantity > 0) {
       addToCart(product, quantity);
       setQuantity(1); // Reset quantity after adding
+    }
+  };
+
+  const handleWishlistToggle = () => {
+    if (isInWishlist(product.id)) {
+      removeFromWishlist(product.id);
+    } else {
+      addToWishlist(product.id);
     }
   };
 
@@ -138,7 +152,7 @@ const ProductDetails = () => {
                       }`}
                     >
                       <img
-                        src={image}
+                        src={image.url}
                         alt={`${product.name} ${index + 1}`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -159,10 +173,23 @@ const ProductDetails = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="space-y-6"
           >
-            <div>
+            <div className="relative group">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                 {product.name}
               </h1>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleWishlistToggle}
+                className={`absolute top-0 right-0 p-2 rounded-full shadow-lg transition-all duration-300 opacity-0 group-hover:opacity-100 ${
+                  isInWishlist(product.id)
+                    ? 'bg-red-500 text-white shadow-red-200'
+                    : 'bg-gray-200/80 dark:bg-gray-700/80 text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-800 hover:shadow-xl'
+                }`}
+                aria-label={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+              >
+                <FiHeart className={`w-5 h-5 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+              </motion.button>
               <div className="flex items-center space-x-4 mb-4">
                 <div className="flex items-center space-x-1">
                   <FiStar className="w-5 h-5 text-yellow-400 fill-current" />
@@ -179,11 +206,11 @@ const ProductDetails = () => {
 
             <div className="flex items-center space-x-4">
               <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                INR ${product.price}
+                INR {product.price}
               </span>
               {product.originalPrice && (
                 <span className="text-xl text-gray-500 line-through">
-                  INR ${product.originalPrice}
+                  INR {product.originalPrice}
                 </span>
               )}
             </div>
@@ -249,28 +276,127 @@ const ProductDetails = () => {
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-6 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl disabled:cursor-not-allowed"
                 >
                   <FiShoppingCart className="w-5 h-5" />
-                  <span>Add to Cart - INR ${(product.price * quantity).toFixed(2)}</span>
+                  <span>Add to Cart - INR {(product.price * quantity).toFixed(2)}</span>
                 </motion.button>
               </div>
             </Card>
 
             {/* Features */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="flex items-center space-x-3 text-sm text-gray-600 dark:text-gray-400">
-                <FiTruck className="w-5 h-5 text-green-500" />
-                <span>Free Shipping</span>
-              </div>
-              <div className="flex items-center space-x-3 text-sm text-gray-600 dark:text-gray-400">
-                <FiShield className="w-5 h-5 text-blue-500" />
-                <span>2 Year Warranty</span>
-              </div>
-              <div className="flex items-center space-x-3 text-sm text-gray-600 dark:text-gray-400">
-                <FiRotateCcw className="w-5 h-5 text-purple-500" />
-                <span>30 Day Returns</span>
-              </div>
+              {product.features ? (
+                JSON.parse(product.features).map((feature, index) => {
+                  const IconComponent = {
+                    FiTruck,
+                    FiShield,
+                    FiRotateCcw,
+                    FiPercent,
+                    FiClock
+                  }[feature.icon] || FiShield;
+
+                  const iconColors = {
+                    FiTruck: 'text-green-500',
+                    FiShield: 'text-blue-500',
+                    FiRotateCcw: 'text-purple-500',
+                    FiPercent: 'text-orange-500',
+                    FiClock: 'text-red-500'
+                  };
+
+                  return (
+                    <div key={index} className="flex items-center space-x-3 text-sm text-gray-600 dark:text-gray-400">
+                      <IconComponent className={`w-5 h-5 ${iconColors[feature.icon] || 'text-blue-500'}`} />
+                      <span>{feature.text}</span>
+                    </div>
+                  );
+                })
+              ) : (
+                <>
+                  <div className="flex items-center space-x-3 text-sm text-gray-600 dark:text-gray-400">
+                    <FiTruck className="w-5 h-5 text-green-500" />
+                    <span>Free Shipping</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-sm text-gray-600 dark:text-gray-400">
+                    <FiShield className="w-5 h-5 text-blue-500" />
+                    <span>Quality Assured</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-sm text-gray-600 dark:text-gray-400">
+                    <FiRotateCcw className="w-5 h-5 text-purple-500" />
+                    <span>30 Day Returns</span>
+                  </div>
+                </>
+              )}
             </div>
           </motion.div>
         </div>
+
+        {/* Reviews Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="mt-16"
+        >
+          <Card className="p-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+              Customer Reviews ({product.reviews?.length || 0})
+            </h2>
+
+            {product.reviews && product.reviews.length > 0 ? (
+              <div className="space-y-6">
+                {product.reviews.map((review, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                    className="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-b-0 last:pb-0"
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold text-sm">
+                            {review.user?.charAt(0).toUpperCase() || 'U'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">
+                            {review.user || 'Anonymous'}
+                          </span>
+                          <div className="flex items-center space-x-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <FiStar
+                                key={star}
+                                className={`w-4 h-4 ${
+                                  star <= (review.rating || 0)
+                                    ? 'text-yellow-400 fill-current'
+                                    : 'text-gray-300 dark:text-gray-600'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                          {review.comment || review.review || 'No comment provided.'}
+                        </p>
+                        <div className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                          {review.date ? new Date(review.date).toLocaleDateString() : 'Recent review'}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FiStar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">
+                  No reviews yet. Be the first to review this product!
+                </p>
+              </div>
+            )}
+          </Card>
+        </motion.div>
       </div>
     </div>
   );

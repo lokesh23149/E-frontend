@@ -7,7 +7,8 @@ import {
   FiShoppingCart,
   FiUser,
   FiSettings,
-  FiLogOut
+  FiLogOut,
+  FiTag
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,6 +20,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'Dashboard', path: '/dashboard', icon: FiBarChart2 },
     { name: 'Products', path: '/products', icon: FiPackage },
     { name: 'Orders', path: '/orders', icon: FiShoppingCart },
+    { name: 'Offers', path: '/offers', icon: FiTag },
     { name: 'Profile', path: '/profile', icon: FiUser },
     { name: 'Settings', path: '/settings', icon: FiSettings },
   ];

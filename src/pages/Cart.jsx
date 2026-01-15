@@ -19,7 +19,7 @@ const Cart = () => {
     removeFromCart(id);
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shipping = subtotal > 100 ? 0 : 9.99;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
@@ -100,7 +100,7 @@ const Cart = () => {
                             {item.name}
                           </h3>
                           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                            INR ${item.price}
+                            INR {item.price}
                           </p>
                         </div>
 
@@ -139,7 +139,7 @@ const Cart = () => {
                         {/* Item Total */}
                         <div className="text-right">
                           <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                            INR ${(item.price * item.quantity).toFixed(2)}
+                            INR {(item.price * item.quantity).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -160,7 +160,7 @@ const Cart = () => {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
                     <span className="text-gray-900 dark:text-gray-100 font-medium">
-                      INR ${subtotal.toFixed(2)}
+                      INR {subtotal.toFixed(2)}
                     </span>
                   </div>
 
@@ -174,7 +174,7 @@ const Cart = () => {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Tax</span>
                     <span className="text-gray-900 dark:text-gray-100 font-medium">
-                      INR ${tax.toFixed(2)}
+                      INR {tax.toFixed(2)}
                     </span>
                   </div>
 
@@ -182,7 +182,7 @@ const Cart = () => {
                     <div className="flex justify-between text-lg font-semibold">
                       <span className="text-gray-900 dark:text-gray-100">Total</span>
                       <span className="text-gray-900 dark:text-gray-100">
-                        INR ${total.toFixed(2)}
+                        INR {total.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -208,7 +208,7 @@ const Cart = () => {
                 {subtotal < 100 && (
                   <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <p className="text-sm text-blue-600 dark:text-blue-400">
-                      Add INR ${(100 - subtotal).toFixed(2)} more for free shipping!
+                      Add INR {(100 - subtotal).toFixed(2)} more for free shipping!
                     </p>
                   </div>
                 )}

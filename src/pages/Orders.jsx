@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FiPackage, FiTruck, FiCheckCircle, FiXCircle, FiEye, FiDownload } from 'react-icons/fi';
 import Card from '../components/Card';
 import Loader from '../components/Loader';
+import { orderService } from '../api/orderService';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -10,55 +11,28 @@ const Orders = () => {
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    // Simulate API call to fetch orders
     const fetchOrders = async () => {
       setLoading(true);
       try {
-        // Mock data - replace with actual API
-        setOrders([
-          {
-            id: 'ORD-001',
-            date: '2024-01-15',
-            status: 'delivered',
-            total: 299.99,
-            items: [
-              { name: 'Premium Wireless Headphones', quantity: 1, price: 299.99 },
-            ],
-            shipping: {
-              address: '123 Main St, City, State 12345',
-              method: 'Standard Shipping',
-              tracking: 'TRK123456789',
-            },
+        const userOrders = await orderService.getUserOrders();
+        // Transform the backend data to match the frontend format
+        const transformedOrders = userOrders.map(order => ({
+          id: order.referenceId,
+          date: new Date(order.id).toISOString().split('T')[0], // Using order ID as date approximation
+          status: order.status,
+          total: order.total,
+          items: order.orderitems.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          shipping: {
+            address: 'Default Address', // You might want to add address to order entity
+            method: 'Standard Shipping',
+            tracking: null,
           },
-          {
-            id: 'ORD-002',
-            date: '2024-01-12',
-            status: 'shipped',
-            total: 149.50,
-            items: [
-              { name: 'Smart Watch Series X', quantity: 1, price: 149.50 },
-            ],
-            shipping: {
-              address: '123 Main St, City, State 12345',
-              method: 'Express Shipping',
-              tracking: 'TRK987654321',
-            },
-          },
-          {
-            id: 'ORD-003',
-            date: '2024-01-10',
-            status: 'processing',
-            total: 89.99,
-            items: [
-              { name: 'Bluetooth Speaker', quantity: 1, price: 89.99 },
-            ],
-            shipping: {
-              address: '123 Main St, City, State 12345',
-              method: 'Standard Shipping',
-              tracking: null,
-            },
-          },
-        ]);
+        }));
+        setOrders(transformedOrders);
       } catch (error) {
         console.error('Error fetching orders:', error);
       } finally {

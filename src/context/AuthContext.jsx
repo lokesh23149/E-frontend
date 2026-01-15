@@ -48,11 +48,22 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateProfile = async (profileData) => {
+    try {
+      const response = await authService.updateProfile(profileData);
+      setUser({ ...user, ...profileData });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const value = {
     user,
     login,
     register,
     logout,
+    updateProfile,
     isAuthenticated: authService.isAuthenticated(),
     loading,
   };

@@ -68,7 +68,7 @@ export const CartProvider = ({ children }) => {
     try {
       const orderData = {
         orderdao: cart.map(item => ({
-          productId: item.id,
+          productid: item.id,
           quantity: item.quantity,
           name: item.name,
           image: item.image,

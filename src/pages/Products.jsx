@@ -21,6 +21,7 @@ const Products = () => {
     rating: 0,
     sortBy: 'name',
   });
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [viewMode, setViewMode] = useState('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [error, setError] = useState(null);
@@ -30,7 +31,6 @@ const Products = () => {
     totalElements: 0,
     size: 12
   });
-  const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const sortOptions = [
     { value: 'name', label: 'Name A-Z' },
@@ -45,10 +45,11 @@ const Products = () => {
       setCategoriesLoading(true);
       try {
         const categoriesData = await productService.getCategories();
-        setCategories(categoriesData || []);
+        const allCategories = [...(categoriesData || []), 'offers'];
+        setCategories(allCategories);
       } catch (error) {
         console.error('Error fetching categories:', error);
-        setCategories([]); // Fallback to empty array
+        setCategories(['offers']); // Fallback to offers only
         setError('Failed to load categories. Please try again later.');
       } finally {
         setCategoriesLoading(false);
@@ -61,7 +62,9 @@ const Products = () => {
   // Debounce search term
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
+      setDebouncedSearchTerm(searchTerm.trim());
+      // Reset to first page when search changes
+      setPagination(prev => ({ ...prev, currentPage: 0 }));
     }, 500);
 
     return () => clearTimeout(timer);
@@ -75,21 +78,31 @@ const Products = () => {
         const params = {
           page: pagination.currentPage,
           size: pagination.size,
-          category: filters.categories.length > 0 ? filters.categories.join(',') : undefined,
+          category: filters.categories.filter(cat => cat !== 'offers').length > 0 ? filters.categories.filter(cat => cat !== 'offers').join(',') : undefined,
           minPrice: filters.minPrice,
-          maxPrice: filters.maxPrice,
-          minRating: filters.rating,
-          sort: filters.sortBy,
           search: debouncedSearchTerm,
         };
 
         const response = await productService.getAllProducts(params);
-        setProducts(response.products || []);
+        let filteredProducts = response.products || [];
+
+        // Filter for offers if 'offers' is selected
+        if (filters.categories.includes('offers')) {
+          filteredProducts = filteredProducts.filter(product => product.discount && product.discount > 0);
+        }
+
+        // Apply client-side pagination for offers filter
+        const totalFilteredElements = filteredProducts.length;
+        const startIndex = pagination.currentPage * pagination.size;
+        const endIndex = startIndex + pagination.size;
+        const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+        setProducts(paginatedProducts);
         setPagination({
-          currentPage: response.currentPage || 0,
-          totalPages: response.totalPages || 0,
-          totalElements: response.totalElements || 0,
-          size: response.size || 12
+          currentPage: pagination.currentPage,
+          totalPages: Math.ceil(totalFilteredElements / pagination.size),
+          totalElements: totalFilteredElements,
+          size: pagination.size
         });
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -100,7 +113,7 @@ const Products = () => {
     };
 
     fetchProducts();
-  }, [filters, searchParams, pagination.currentPage]);
+  }, [filters, searchParams, pagination.currentPage, debouncedSearchTerm]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -129,21 +142,11 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Products
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Discover our amazing collection of products
-          </p>
-        </motion.div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+
+
+
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
@@ -373,71 +376,49 @@ const Products = () => {
             </Card>
           </div>
 
-          {/* Products Grid */}
+          {/* Products Section */}
           <div className="flex-1">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="lg:hidden flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
-                >
-                  <FiSliders className="w-4 h-4" />
-                  <span>Filters</span>
-                </button>
-
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {pagination.totalElements} products found (Page {pagination.currentPage + 1} of {pagination.totalPages})
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <FiSearch className="w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100"
-                />
-              </div>
-
-              <div className="flex items-center space-x-4">
-                {/* Sort */}
-                <select
-                  value={filters.sortBy}
-                  onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                  className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100"
-                >
-                  {sortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-
-                {/* View Mode */}
-                <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            {/* Top Toolbar */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                {/* Left: Product count and mobile filters */}
+                <div className="flex items-center justify-between sm:justify-start gap-4">
                   <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded-md transition-colors duration-200 ${
-                      viewMode === 'grid'
-                        ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                    }`}
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="lg:hidden flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
                   >
-                    <FiGrid className="w-4 h-4" />
+                    <FiSliders className="w-4 h-4" />
+                    <span className="font-medium">Filters</span>
                   </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-2 rounded-md transition-colors duration-200 ${
-                      viewMode === 'list'
-                        ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                    }`}
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {pagination.totalElements} products found
+                  </span>
+                </div>
+
+                {/* Right: Search and Sort */}
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search products..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 w-64"
+                    />
+                  </div>
+
+                  <select
+                    value={filters.sortBy}
+                    onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                    className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 font-medium"
                   >
-                    <FiList className="w-4 h-4" />
-                  </button>
+                    {sortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

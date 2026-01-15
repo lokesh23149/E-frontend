@@ -9,10 +9,16 @@ import { productService } from '../api/productService';
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Hardcoded categories for Gym Section
+  const categories = [
+    { name: 'Accessories', icon: '🧢', count: '50+' },
+    { name: 'Clothing', icon: '👕', count: '100+' },
+    { name: 'Equipment', icon: '🏋️', count: '75+' },
+    { name: 'Supplements', icon: '💊', count: '30+' },
+  ];
 
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
@@ -29,32 +35,10 @@ const Home = () => {
       }
     };
 
-    const fetchCategories = async () => {
-      setCategoriesLoading(true);
-      try {
-        const categoriesData = await productService.getCategories();
-        const allProducts = await productService.getAllProducts();
-        // Transform categories to include icon and count for display
-        const transformedCategories = categoriesData.map((category, index) => {
-          const count = allProducts.products.filter(product => product.category === category).length;
-          return {
-            name: category,
-            icon: ['🏃', '💪', '🏋️', '🥊'][index % 4], // Cycle through some gym-related emojis
-            count: count
-          };
-        });
-        setCategories(transformedCategories || []);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        setCategories([]); // Fallback to empty array
-      } finally {
-        setCategoriesLoading(false);
-      }
-    };
-
     fetchFeaturedProducts();
-    fetchCategories();
   }, []);
+
+
 
   const stats = [
     { icon: FiShoppingBag, value: '10K+', label: 'Products' },
@@ -80,7 +64,7 @@ const Home = () => {
             transition={{ duration: 0.8 }}
             className="text-center"
           >
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+            <h1 className="text-5xl  md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
               Premium Shopping
               <br />
               Experience
@@ -150,24 +134,13 @@ const Home = () => {
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               Gym Section
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-6">
               Explore our wide range of categories and find exactly what you're looking for.
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categoriesLoading ? (
-              Array(4).fill(0).map((_, index) => (
-                <div key={index} className="animate-pulse">
-                  <Card className="text-center overflow-hidden">
-                    <div className="h-32 mb-4 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mx-auto mb-2"></div>
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16 mx-auto"></div>
-                  </Card>
-                </div>
-              ))
-            ) : (
-              categories.map((category, index) => (
+            {categories.map((category, index) => (
               <motion.div
                 key={category.name}
                 initial={{ opacity: 0, y: 30 }}
@@ -194,11 +167,37 @@ const Home = () => {
                   </Card>
                 </Link>
               </motion.div>
-              ))
-            )}
+            ))}
           </div>
+
+          {/* Big Offer Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            viewport={{ once: true }}
+            className="mt-16"
+          >
+            <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-800 rounded-3xl p-12 text-center text-white shadow-2xl">
+              <h3 className="text-4xl md:text-5xl font-bold mb-4">
+                Special Gym Offer!
+              </h3>
+              <p className="text-xl md:text-2xl mb-8 text-blue-100">
+                Get 50% off on all gym equipment and accessories. Limited time offer!
+              </p>
+              <Link
+                to="/offers"
+                className="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-full hover:bg-blue-50 transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                Claim Offer
+                <FiArrowRight className="ml-2 w-5 h-5" />
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
+
+
 
       {/* Featured Products */}
       <section className="py-16 bg-white dark:bg-gray-800">
@@ -261,40 +260,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Newsletter Section */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Stay Updated
-            </h2>
-            <p className="text-xl mb-8 text-blue-100">
-              Subscribe to our newsletter for the latest products and exclusive offers.
-            </p>
-            <div className="max-w-md mx-auto">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white/50"
-                />
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-300 shadow-lg"
-                >
-                  Subscribe
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+
     </div>
   );
 };

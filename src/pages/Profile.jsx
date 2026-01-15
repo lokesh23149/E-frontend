@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiUser, FiMail, FiPhone, FiMapPin, FiEdit2, FiSave, FiX } from 'react-icons/fi';
+import { FiPackage, FiUser, FiMail, FiHeart, FiShoppingBag, FiLogOut, FiEdit2, FiSave, FiX, FiMapPin, FiPhone, FiTruck, FiCheckCircle, FiClock, FiXCircle } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { orderService } from '../api/orderService';
+import { useWishlist } from '../context/WishlistContext';
 import Card from '../components/Card';
 import Loader from '../components/Loader';
 
 const Profile = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
+  const { wishlist, removeFromWishlist } = useWishlist();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -19,6 +28,14 @@ const Profile = () => {
     state: '',
     zipCode: '',
   });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -34,6 +51,22 @@ const Profile = () => {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    const fetchUserOrders = async () => {
+      setOrdersLoading(true);
+      try {
+        const data = await orderService.getUserOrders();
+        setOrders(data);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+
+    fetchUserOrders();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -70,13 +103,95 @@ const Profile = () => {
     setIsEditing(false);
   };
 
+  const handlePasswordFormChange = (e) => {
+    setPasswordForm({
+      ...passwordForm,
+      [e.target.name]: e.target.value,
+    });
+    // Clear messages when user starts typing
+    if (passwordError) setPasswordError('');
+    if (passwordSuccess) setPasswordSuccess('');
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPasswordLoading(true);
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    try {
+      // Client-side validation
+      if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+        setPasswordError('All fields are required');
+        return;
+      }
+
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        setPasswordError('New password and confirmation do not match');
+        return;
+      }
+
+      if (passwordForm.newPassword === passwordForm.currentPassword) {
+        setPasswordError('New password must be different from current password');
+        return;
+      }
+
+      // Call API
+      await authService.changePassword(passwordForm);
+      setPasswordSuccess('Password changed successfully!');
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    } catch (error) {
+      setPasswordError(error.message || 'Failed to change password');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return <FiClock className="w-5 h-5 text-yellow-500" />;
+      case 'processing':
+        return <FiPackage className="w-5 h-5 text-blue-500" />;
+      case 'shipped':
+        return <FiTruck className="w-5 h-5 text-purple-500" />;
+      case 'delivered':
+        return <FiCheckCircle className="w-5 h-5 text-green-500" />;
+      case 'cancelled':
+        return <FiXCircle className="w-5 h-5 text-red-500" />;
+      default:
+        return <FiPackage className="w-5 h-5 text-gray-500" />;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      case 'shipped':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      case 'delivered':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    }
+  };
+
   if (!user) {
     return <Loader className="py-16" />;
   }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -84,281 +199,590 @@ const Profile = () => {
         >
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              Profile Settings
+              Account Settings
             </h1>
-            {!isEditing ? (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsEditing(true)}
-                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-lg transition-all duration-200"
-              >
-                <FiEdit2 className="w-4 h-4 mr-2" />
-                Edit Profile
-              </motion.button>
-            ) : (
-              <div className="flex space-x-3">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <Loader size="small" />
-                  ) : (
-                    <>
-                      <FiSave className="w-4 h-4 mr-2" />
-                      Save
-                    </>
-                  )}
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleCancel}
-                  className="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-all duration-200"
-                >
-                  <FiX className="w-4 h-4 mr-2" />
-                  Cancel
-                </motion.button>
-              </div>
-            )}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                logout();
+                navigate('/login');
+              }}
+              className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all duration-200"
+            >
+              <FiLogOut className="w-4 h-4 mr-2" />
+              Logout
+            </motion.button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Profile Overview */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-            >
-              <Card className="p-6">
-                <div className="text-center">
-                  <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <FiUser className="w-12 h-12 text-white" />
-                  </div>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                    {user.firstName} {user.lastName}
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    {user.email}
-                  </p>
-                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                    <div className="flex items-center justify-center">
-                      <FiMail className="w-4 h-4 mr-2" />
-                      <span>Member since {new Date(user.createdAt || Date.now()).toLocaleDateString()}</span>
+          {/* Tab Navigation */}
+          <div className="mb-8">
+            <nav className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+              {[
+                { id: 'personal', label: 'Personal Info', icon: FiUser },
+                { id: 'security', label: 'Security', icon: FiMail },
+                { id: 'orders', label: 'My Orders', icon: FiPackage },
+                { id: 'liked', label: 'Liked', icon: FiHeart },
+                { id: 'account', label: 'Account', icon: FiShoppingBag },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    activeTab === tab.id
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+                >
+                  <tab.icon className="w-4 h-4 mr-2" />
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Role Display */}
+          <div className="mb-6">
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+              Role: {user?.role === 'ROLE_ADMIN' ? 'Administrator' : 'User'}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="space-y-6">
+            {activeTab === 'personal' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <Card className="p-6">
+                  {/* Personal Info Content */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          First Name
+                        </label>
+                        <input
+                          type="text"
+                          name="firstName"
+                          value={formData.firstName}
+                          onChange={handleChange}
+                          disabled={!isEditing}
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Last Name
+                        </label>
+                        <input
+                          type="text"
+                          name="lastName"
+                          value={formData.lastName}
+                          onChange={handleChange}
+                          disabled={!isEditing}
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                        />
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Profile Details */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="lg:col-span-2"
-            >
-              <Card className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
-                  Personal Information
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* First Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      First Name
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200"
-                      />
-                    ) : (
-                      <div className="flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <FiUser className="w-5 h-5 text-gray-400 mr-3" />
-                        <span className="text-gray-900 dark:text-gray-100">{formData.firstName}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Last Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Last Name
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200"
-                      />
-                    ) : (
-                      <div className="flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <FiUser className="w-5 h-5 text-gray-400 mr-3" />
-                        <span className="text-gray-900 dark:text-gray-100">{formData.lastName}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email Address
-                    </label>
-                    {isEditing ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <FiMail className="w-4 h-4 inline mr-2" />
+                        Email
+                      </label>
                       <input
                         type="email"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200"
+                        disabled={!isEditing}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800"
                       />
-                    ) : (
-                      <div className="flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <FiMail className="w-5 h-5 text-gray-400 mr-3" />
-                        <span className="text-gray-900 dark:text-gray-100">{formData.email}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Phone */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Phone Number
-                    </label>
-                    {isEditing ? (
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <FiPhone className="w-4 h-4 inline mr-2" />
+                        Phone
+                      </label>
                       <input
                         type="tel"
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200"
-                        placeholder="+1 (555) 123-4567"
+                        disabled={!isEditing}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800"
                       />
-                    ) : (
-                      <div className="flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <FiPhone className="w-5 h-5 text-gray-400 mr-3" />
-                        <span className="text-gray-900 dark:text-gray-100">
-                          {formData.phone || 'Not provided'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Address Section */}
-                <div className="mt-8">
-                  <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                    Address Information
-                  </h4>
-
-                  <div className="space-y-4">
-                    {/* Street Address */}
+                    </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Street Address
+                        <FiMapPin className="w-4 h-4 inline mr-2" />
+                        Address
                       </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="address"
-                          value={formData.address}
-                          onChange={handleChange}
-                          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200"
-                          placeholder="123 Main St"
-                        />
-                      ) : (
-                        <div className="flex items-center px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                          <FiMapPin className="w-5 h-5 text-gray-400 mr-3" />
-                          <span className="text-gray-900 dark:text-gray-100">
-                            {formData.address || 'Not provided'}
-                          </span>
-                        </div>
-                      )}
+                      <input
+                        type="text"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        disabled={!isEditing}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                      />
                     </div>
-
-                    {/* City, State, ZIP */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           City
                         </label>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            name="city"
-                            value={formData.city}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200"
-                            placeholder="City"
-                          />
-                        ) : (
-                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                            <span className="text-gray-900 dark:text-gray-100">
-                              {formData.city || 'Not provided'}
-                            </span>
-                          </div>
-                        )}
+                        <input
+                          type="text"
+                          name="city"
+                          value={formData.city}
+                          onChange={handleChange}
+                          disabled={!isEditing}
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                        />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           State
                         </label>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            name="state"
-                            value={formData.state}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200"
-                            placeholder="State"
-                          />
-                        ) : (
-                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                            <span className="text-gray-900 dark:text-gray-100">
-                              {formData.state || 'Not provided'}
-                            </span>
-                          </div>
-                        )}
+                        <input
+                          type="text"
+                          name="state"
+                          value={formData.state}
+                          onChange={handleChange}
+                          disabled={!isEditing}
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                        />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          ZIP Code
+                          Zip Code
                         </label>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            name="zipCode"
-                            value={formData.zipCode}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200"
-                            placeholder="12345"
-                          />
-                        ) : (
-                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                            <span className="text-gray-900 dark:text-gray-100">
-                              {formData.zipCode || 'Not provided'}
-                            </span>
-                          </div>
-                        )}
+                        <input
+                          type="text"
+                          name="zipCode"
+                          value={formData.zipCode}
+                          onChange={handleChange}
+                          disabled={!isEditing}
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                        />
                       </div>
                     </div>
                   </div>
+                  <div className="mt-6 flex gap-3">
+                    {!isEditing ? (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setIsEditing(true)}
+                        className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200"
+                      >
+                        <FiEdit2 className="w-4 h-4 mr-2" />
+                        Edit
+                      </motion.button>
+                    ) : (
+                      <>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={handleSave}
+                          disabled={loading}
+                          className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50"
+                        >
+                          <FiSave className="w-4 h-4 mr-2" />
+                          {loading ? 'Saving...' : 'Save'}
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={handleCancel}
+                          className="inline-flex items-center px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white font-medium rounded-lg transition-all duration-200"
+                        >
+                          <FiX className="w-4 h-4 mr-2" />
+                          Cancel
+                        </motion.button>
+                      </>
+                    )}
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+
+            {activeTab === 'security' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Change Password</h3>
+
+                  <form onSubmit={handlePasswordChange} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        name="currentPassword"
+                        value={passwordForm.currentPassword}
+                        onChange={handlePasswordFormChange}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your current password"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        name="newPassword"
+                        value={passwordForm.newPassword}
+                        onChange={handlePasswordFormChange}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your new password"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        value={passwordForm.confirmPassword}
+                        onChange={handlePasswordFormChange}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Confirm your new password"
+                        required
+                      />
+                    </div>
+
+                    {passwordError && (
+                      <div className="text-red-600 dark:text-red-400 text-sm">
+                        {passwordError}
+                      </div>
+                    )}
+
+                    {passwordSuccess && (
+                      <div className="text-green-600 dark:text-green-400 text-sm">
+                        {passwordSuccess}
+                      </div>
+                    )}
+
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      type="submit"
+                      disabled={passwordLoading}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {passwordLoading ? 'Changing Password...' : 'Change Password'}
+                    </motion.button>
+                  </form>
+                </Card>
+              </motion.div>
+            )}
+
+            {activeTab === 'orders' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Order Tracking</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Track your orders and view their current status
+                    </p>
+                  </div>
+                  {ordersLoading ? (
+                    <Loader className="py-8" />
+                  ) : orders.length === 0 ? (
+                    <div className="text-center py-12">
+                      <FiPackage className="w-20 h-20 text-gray-400 mx-auto mb-4" />
+                      <h4 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No Orders Found</h4>
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">You haven't placed any orders yet.</p>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => navigate('/products')}
+                        className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200"
+                      >
+                        <FiShoppingBag className="w-4 h-4 mr-2" />
+                        Start Shopping
+                      </motion.button>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {orders.map((order, index) => (
+                        <motion.div
+                          key={order.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: index * 0.1 }}
+                        >
+                          <Card className="p-6 hover:shadow-lg transition-shadow duration-200">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center space-x-3">
+                                {getStatusIcon(order.status)}
+                                <div>
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    Order #{order.referenceId}
+                                  </h3>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    Placed on {new Date(order.createdAt || Date.now()).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
+                                {order.status || 'Unknown'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                              <div>
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Amount</p>
+                                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                  ${order.total?.toFixed(2) || '0.00'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Items</p>
+                                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                  {order.orderitems?.length || 0}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Order ID</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                                  {order.referenceId}
+                                </p>
+                              </div>
+                            </div>
+
+                            {order.orderitems && order.orderitems.length > 0 && (
+                              <div className="border-t pt-4 mb-4">
+                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                  Items in this order:
+                                </h4>
+                                <div className="space-y-2">
+                                  {order.orderitems.slice(0, 3).map((item, idx) => (
+                                    <div key={idx} className="flex justify-between text-sm">
+                                      <span className="text-gray-600 dark:text-gray-400">
+                                        {item.product?.name || 'Product'} x{item.quantity}
+                                      </span>
+                                      <span className="text-gray-900 dark:text-gray-100">
+                                        ${(item.price * item.quantity)?.toFixed(2) || '0.00'}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {order.orderitems.length > 3 && (
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                      +{order.orderitems.length - 3} more items
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex justify-end">
+                              <button
+                                onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
+                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+                              >
+                                {selectedOrder?.id === order.id ? 'Hide Details' : 'View Details'}
+                              </button>
+                            </div>
+
+                            {selectedOrder?.id === order.id && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mt-4 pt-4 border-t"
+                              >
+                                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                  Order Details
+                                </h4>
+                                <div className="space-y-3">
+                                  {order.orderitems?.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                                      <div className="flex-1">
+                                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                                          {item.product?.name || 'Product'}
+                                        </p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                          Quantity: {item.quantity} × ${item.price?.toFixed(2) || '0.00'}
+                                        </p>
+                                      </div>
+                                      <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                        ${(item.price * item.quantity)?.toFixed(2) || '0.00'}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                  <div className="flex justify-between text-lg font-semibold">
+                                    <span>Total:</span>
+                                    <span>${order.total?.toFixed(2) || '0.00'}</span>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              </motion.div>
+            )}
+
+            {activeTab === 'liked' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Liked Items</h3>
+                        <p className="text-gray-600 dark:text-gray-400 mt-1">
+                          Your saved products ({wishlist.length})
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                        <FiHeart className="w-5 h-5" />
+                        <span className="text-sm font-medium">{wishlist.length} items</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {wishlist.length === 0 ? (
+                    <div className="p-12 text-center">
+                      <div className="w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <FiHeart className="w-12 h-12 text-gray-400" />
+                      </div>
+                      <h4 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No Liked Items Yet</h4>
+                      <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+                        Start exploring our products and save your favorites for later!
+                      </p>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => navigate('/products')}
+                        className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                      >
+                        <FiShoppingBag className="w-5 h-5 mr-2" />
+                        Start Shopping
+                      </motion.button>
+                    </div>
+                  ) : (
+                    <div className="p-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {wishlist.map((item, index) => (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: index * 0.1 }}
+                            className="group"
+                          >
+                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:-translate-y-1">
+                              {/* Product Image */}
+                              <div className="relative aspect-square overflow-hidden bg-gray-50 dark:bg-gray-700">
+                                <img
+                                  src={
+                                    item.product?.images?.[0]?.url
+                                      ? (item.product.images[0].url.startsWith('http')
+                                          ? item.product.images[0].url
+                                          : `http://localhost:8080${item.product.images[0].url}`)
+                                      : "/placeholder-product.jpg"
+                                  }
+                                  alt={item.product?.name}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  onError={(e) => {
+                                    e.target.src = "/placeholder-product.jpg";
+                                  }}
+                                />
+                                {/* Remove from wishlist button */}
+                                <button
+                                  onClick={() => removeFromWishlist(item.product.id)}
+                                  className="absolute top-3 right-3 w-8 h-8 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 opacity-0 group-hover:opacity-100"
+                                  title="Remove from wishlist"
+                                >
+                                  <FiHeart className="w-4 h-4 text-red-500 fill-current" />
+                                </button>
+                              </div>
+
+                              {/* Product Info */}
+                              <div className="p-4">
+                                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 leading-tight">
+                                  {item.product?.name}
+                                </h4>
+
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                                  {item.product?.description}
+                                </p>
+
+                                <div className="flex items-center justify-between mb-4">
+                                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                    INR {item.product?.price}
+                                  </span>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="space-y-2">
+                                  <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => navigate(`/products/${item.product.id}`)}
+                                    className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 py-2.5 px-4 rounded-lg font-medium transition-all duration-200 text-sm"
+                                  >
+                                    View Details
+                                  </motion.button>
+                                  <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => navigate('/cart')}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg font-medium transition-all duration-200 text-sm shadow-sm hover:shadow-md"
+                                  >
+                                    Add to Cart
+                                  </motion.button>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </Card>
-            </motion.div>
+              </motion.div>
+            )}
+
+            {activeTab === 'account' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Account Information</h3>
+                </Card>
+              </motion.div>
+            )}
           </div>
         </motion.div>
       </div>
