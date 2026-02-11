@@ -1,14 +1,8 @@
-import { motion } from 'framer-motion';
 import Card from './Card';
 
 const ProductSkeleton = () => {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="group"
-    >
+    <div className="group">
       <Card className="relative overflow-hidden border-0 shadow-lg bg-white dark:bg-gray-800 h-full flex flex-col">
         {/* Image Skeleton */}
         <div className="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 animate-pulse">
@@ -55,7 +49,7 @@ const ProductSkeleton = () => {
           </div>
         </div>
       </Card>
-    </motion.div>
+    </div>
   );
 };
 

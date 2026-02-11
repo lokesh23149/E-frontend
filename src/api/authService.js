@@ -32,7 +32,7 @@ export const authService = {
         password: userData.password
       };
 
-      const response = await api.post('/api/users', registerData);
+      await api.post('/api/users', registerData);
 
       // After registration, automatically log in
       const loginResponse = await authService.login({
@@ -59,6 +59,20 @@ export const authService = {
 
   isAuthenticated: () => {
     return !!localStorage.getItem('token');
+  },
+
+  updateProfile: async (profileData) => {
+    try {
+      const response = await api.put('/auth/profile', profileData);
+      // Update local storage user data
+      const currentUser = authService.getCurrentUser();
+      const updatedUser = { ...currentUser, ...profileData };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return response.data;
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw new Error(error.response?.data?.error || 'Failed to update profile');
+    }
   },
 
   getToken: () => {

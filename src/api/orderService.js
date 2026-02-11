@@ -33,4 +33,24 @@ export const orderService = {
       throw error;
     }
   },
+
+  updateOrderStatus: async (referenceID, status) => {
+    try {
+      const response = await api.put(`${API_URL}/${referenceID}/status`, status);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      throw error;
+    }
+  },
+
+  getOrderTracking: async (referenceID) => {
+    try {
+      const response = await api.get(`${API_URL}/${referenceID}/tracking`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching order tracking:', error);
+      throw error;
+    }
+  },
 };

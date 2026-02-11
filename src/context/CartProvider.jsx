@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { CartContext } from './CartContext';
 import { orderService } from '../api/orderService';
+import { useAuth } from './AuthContext';
+
 
 // CartProvider component that manages the cart state
 // Provides cart functions to all child components
 export const CartProvider = ({ children }) => {
+  const { user } = useAuth();
   const [cart, setCart] = useState(() => {
     const savedCart = localStorage.getItem('cart');
     return savedCart ? JSON.parse(savedCart) : [];
@@ -66,6 +69,19 @@ export const CartProvider = ({ children }) => {
   // Place an order using the backend API
   const placeOrder = async () => {
     try {
+      // Validate user address before placing order
+      if (!user) {
+        throw new Error('User not authenticated. Please log in to place an order.');
+      }
+
+      // Check if required address fields are present
+      const requiredFields = ['address', 'city', 'state', 'zipCode'];
+      const missingFields = requiredFields.filter(field => !user[field] || user[field].trim() === '');
+
+      if (missingFields.length > 0) {
+        throw new Error(`Please complete your delivery address. Missing: ${missingFields.join(', ')}. Update your profile to continue.`);
+      }
+
       const orderData = {
         orderdao: cart.map(item => ({
           productid: item.id,

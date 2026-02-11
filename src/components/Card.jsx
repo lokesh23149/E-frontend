@@ -1,7 +1,5 @@
 
 
-import { motion } from 'framer-motion';
-
 const Card = ({
   children,
   className = '',
@@ -16,13 +14,12 @@ const Card = ({
   const hoverClasses = hover ? 'hover:shadow-xl hover:-translate-y-1' : '';
 
   return (
-    <motion.div
-      whileHover={hover ? { y: -4 } : {}}
+    <div
       className={`${baseClasses} ${glassClasses} ${hoverClasses} ${className}`}
       {...props}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };
 

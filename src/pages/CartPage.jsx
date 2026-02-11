@@ -1,15 +1,52 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiMinus, FiPlus, FiTrash2, FiShoppingBag } from 'react-icons/fi';
-import Card from '../components/Card';
-import Loader from '../components/Loader';
-import { useCart } from '../hooks/useCart';
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+import {
+  FiMinus,
+  FiPlus,
+  FiTrash2,
+  FiShoppingBag,
+  FiMapPin,
+  FiUser,
+} from "react-icons/fi";
+import Card from "../components/Card";
+import Loader from "../components/Loader";
+import { useCart } from "../hooks/useCart";
+import { useAuth } from "../context/AuthContext";
 
 const CartPage = () => {
-  const { cart, removeFromCart, clearCart, updateQuantity, placeOrder } = useCart();
+  const { cart, removeFromCart, clearCart, updateQuantity, placeOrder } =
+    useCart();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  
+  const handleUpdateAddress = () => {
+    navigate("/account"); // or /account/address
+  };
+
+  // Detect mobile device for optimizations
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Detect reduced motion preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mediaQuery.matches);
+    const handleChange = (e) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
 
   useEffect(() => {
     // Simulate loading for cart items
@@ -20,20 +57,36 @@ const CartPage = () => {
     removeFromCart(id);
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
   const shipping = subtotal > 100 ? 0 : 9.99;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
-
   const handleCheckout = async () => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: "/cart" } });
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      await placeOrder();
-      alert('Order placed successfully!');
+      const response = await placeOrder();
+      console.log("Order placed successfully:", response);
+      // Navigate to order confirmation page
+      navigate("/order-confirmation", {
+        state: { orderSuccess: true, orderRef: response.referenceID },
+      });
     } catch (error) {
-      setError('Failed to place order. Please try again.');
-      console.error('Checkout error:', error);
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data ||
+        error.message ||
+        "Failed to place order. Please try again.";
+      setError(errorMessage);
+      console.error("Checkout error:", error);
     } finally {
       setLoading(false);
     }
@@ -59,7 +112,12 @@ const CartPage = () => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.6, type: "spring", bounce: 0.4 }}
+            transition={{
+              delay: 0.2,
+              duration: 0.6,
+              type: "spring",
+              bounce: 0.4,
+            }}
             className="relative mb-8"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-3xl opacity-20"></div>
@@ -79,7 +137,8 @@ const CartPage = () => {
             transition={{ delay: 0.6, duration: 0.6 }}
             className="text-lg text-gray-600 dark:text-gray-400 mb-10 leading-relaxed"
           >
-            Looks like you haven't added any items to your cart yet. Start shopping to fill it up with amazing products!
+            Looks like you haven't added any items to your cart yet. Start
+            shopping to fill it up with amazing products!
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -124,9 +183,21 @@ const CartPage = () => {
                   <motion.div
                     key={item.id}
                     layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
+                    initial={
+                      prefersReducedMotion || isMobile
+                        ? {}
+                        : { opacity: 0, y: 20 }
+                    }
+                    animate={
+                      prefersReducedMotion || isMobile
+                        ? {}
+                        : { opacity: 1, y: 0 }
+                    }
+                    exit={
+                      prefersReducedMotion || isMobile
+                        ? {}
+                        : { opacity: 0, y: -20 }
+                    }
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                   >
                     <Card className="p-6">
@@ -134,11 +205,15 @@ const CartPage = () => {
                         {/* Product Image */}
                         <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
                           <img
-                            src={item.images?.[0]?.url || item.image || "/placeholder-product.jpg"}
+                            src={
+                              item.images?.[0]?.url ? (item.images[0].url.startsWith('http') ? item.images[0].url : `http://localhost:8080${item.images[0].url}`) :
+                              item.image ? (item.image.startsWith('http') ? item.image : `http://localhost:8080${item.image}`) :
+                              "/placeholder-product.jpg"
+                            }
                             alt={item.name}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              e.target.src = '/placeholder-product.jpg';
+                              e.target.src = "/placeholder-product.jpg";
                             }}
                           />
                         </div>
@@ -157,8 +232,13 @@ const CartPage = () => {
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-2xl shadow-sm">
                             <motion.button
-                              onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                              whileHover={{ scale: 1.1, backgroundColor: "rgba(239, 68, 68, 0.1)" }}
+                              onClick={() =>
+                                handleQuantityChange(item.id, item.quantity - 1)
+                              }
+                              whileHover={{
+                                scale: 1.1,
+                                backgroundColor: "rgba(239, 68, 68, 0.1)",
+                              }}
                               whileTap={{ scale: 0.95 }}
                               className="p-3 text-gray-600 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-all duration-200 rounded-l-2xl"
                             >
@@ -168,11 +248,19 @@ const CartPage = () => {
                               {item.quantity}
                             </span>
                             <motion.button
-                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                              whileHover={{ scale: 1.1, backgroundColor: "rgba(34, 197, 94, 0.1)" }}
+                              onClick={() =>
+                                handleQuantityChange(item.id, item.quantity + 1)
+                              }
+                              whileHover={{
+                                scale: 1.1,
+                                backgroundColor: "rgba(34, 197, 94, 0.1)",
+                              }}
                               whileTap={{ scale: 0.95 }}
                               className="p-3 text-gray-600 hover:text-green-500 dark:text-gray-400 dark:hover:text-green-400 transition-all duration-200 rounded-r-2xl"
-                              disabled={item.quantity >= (item.stock || item.maxQuantity || 99)}
+                              disabled={
+                                item.quantity >=
+                                (item.stock || item.maxQuantity || 99)
+                              }
                             >
                               <FiPlus className="w-5 h-5" />
                             </motion.button>
@@ -192,7 +280,7 @@ const CartPage = () => {
                         {/* Item Total */}
                         <div className="text-right">
                           <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                            INR ${(item.price * item.quantity).toFixed(2)}
+                            INR {(item.price * item.quantity).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -211,21 +299,27 @@ const CartPage = () => {
 
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Subtotal
+                    </span>
                     <span className="text-gray-900 dark:text-gray-100 font-medium">
                       INR {subtotal.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Shipping</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Shipping
+                    </span>
                     <span className="text-gray-900 dark:text-gray-100 font-medium">
-                      {shipping === 0 ? 'Free' : `INR ${shipping.toFixed(2)}`}
+                      {shipping === 0 ? "Free" : `INR ${shipping.toFixed(2)}`}
                     </span>
                   </div>
 
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Tax</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Tax
+                    </span>
                     <span className="text-gray-900 dark:text-gray-100 font-medium">
                       INR {tax.toFixed(2)}
                     </span>
@@ -233,69 +327,99 @@ const CartPage = () => {
 
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                     <div className="flex justify-between text-lg font-semibold">
-                      <span className="text-gray-900 dark:text-gray-100">Total</span>
                       <span className="text-gray-900 dark:text-gray-100">
-                        INR ${total.toFixed(2)}
+                        Total
+                      </span>
+                      <span className="text-gray-900 dark:text-gray-100">
+                        INR {total.toFixed(2)}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 {error && (
-                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                    <div className="flex items-start space-x-3">
+                      <FiMapPin className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm text-red-600 dark:text-red-400 font-medium mb-2">
+                          {error.includes("delivery address")
+                            ? "Delivery Address Required"
+                            : "Checkout Error"}
+                        </p>
+                        <p className="text-sm text-red-600 dark:text-red-400 mb-3">
+                          {error}
+                        </p>
+                        {error.includes("delivery address") && (
+                          <motion.button
+                            onClick={handleUpdateAddress}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                          >
+                            <FiUser className="w-4 h-4 mr-2" />
+                            Update Address
+                          </motion.button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.1, duration: 0.6 }}
-                    className="mt-8 space-y-4"
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.1, duration: 0.6 }}
+                  className="mt-8 space-y-4"
+                >
+                  <motion.button
+                    onClick={handleCheckout}
+                    disabled={loading}
+                    whileHover={{
+                      scale: 1.05,
+                      boxShadow:
+                        "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-2xl relative overflow-hidden group"
                   >
+                    <span className="relative z-10 flex items-center justify-center">
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                          Processing...
+                        </>
+                      ) : (
+                        "Proceed to Checkout"
+                      )}
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </motion.button>
+
+                  <div className="grid grid-cols-2 gap-3">
                     <motion.button
-                      onClick={handleCheckout}
-                      disabled={loading}
-                      whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
+                      onClick={clearCart}
+                      whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-2xl relative overflow-hidden group"
+                      className="py-3 px-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
                     >
-                      <span className="relative z-10 flex items-center justify-center">
-                        {loading ? (
-                          <>
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                            Processing...
-                          </>
-                        ) : (
-                          'Proceed to Checkout'
-                        )}
-                      </span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      Clear Cart
                     </motion.button>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <motion.button
-                        onClick={clearCart}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="py-3 px-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
-                      >
-                        Clear Cart
-                      </motion.button>
-
-                      <Link
-                        to="/products"
-                        className="block text-center py-3 px-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
-                      >
-                        Continue Shopping
-                      </Link>
-                    </div>
-                  </motion.div>
+                    <Link
+                      to="/products"
+                      className="block text-center py-3 px-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                    >
+                      Continue Shopping
+                    </Link>
+                  </div>
+                </motion.div>
 
                 {subtotal < 100 && (
                   <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <p className="text-sm text-blue-600 dark:text-blue-400">
-                          Add INR {(100 - subtotal).toFixed(2)} more for free shipping!
+                      Add INR {(100 - subtotal).toFixed(2)} more for free
+                      shipping!
                     </p>
                   </div>
                 )}

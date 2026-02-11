@@ -17,11 +17,19 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initAuth = () => {
-      const currentUser = authService.getCurrentUser();
-      if (currentUser && authService.isAuthenticated()) {
-        setUser(currentUser);
+      try {
+        const currentUser = authService.getCurrentUser();
+        if (currentUser && authService.isAuthenticated()) {
+          setUser(currentUser);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        // Clear corrupted data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initAuth();

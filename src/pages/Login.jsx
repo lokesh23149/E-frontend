@@ -6,6 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import Loader from '../components/Loader';
 
+// Check if user prefers reduced motion
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isMobile = window.innerWidth < 768;
+
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -83,7 +87,7 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200"
+                  className={`w-full pl-10 pr-4 ${isMobile ? 'py-4 text-base' : 'py-3'} bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200 ${isMobile ? 'min-h-[44px]' : ''}`}
                   placeholder="Enter your email"
                 />
               </div>
@@ -101,7 +105,7 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200"
+                  className={`w-full pl-10 pr-12 ${isMobile ? 'py-4 text-base' : 'py-3'} bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 transition-colors duration-200 ${isMobile ? 'min-h-[44px]' : ''}`}
                   placeholder="Enter your password"
                 />
                 <button
@@ -118,9 +122,9 @@ const Login = () => {
               <label className="flex items-center">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600`}
                 />
-                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Remember me</span>
+                <span className={`ml-2 ${isMobile ? 'text-base' : 'text-sm'} text-gray-600 dark:text-gray-400`}>Remember me</span>
               </label>
               <Link
                 to="/forgot-password"
@@ -131,11 +135,11 @@ const Login = () => {
             </div>
 
             <motion.button
-              whileHover={{ scale: 1.02 }}
+              whileHover={isMobile ? {} : { scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               disabled={loading}
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 disabled:cursor-not-allowed"
+              className={`w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white ${isMobile ? 'py-4 text-base' : 'py-3'} px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 disabled:cursor-not-allowed ${isMobile ? 'min-h-[44px]' : ''}`}
             >
               {loading ? (
                 <>
@@ -148,12 +152,12 @@ const Login = () => {
             </motion.button>
           </form>
 
-          <div className="mt-8 text-center">
-            <p className="text-gray-600 dark:text-gray-400">
+          <div className={`mt-8 text-center ${isMobile ? 'px-4' : ''}`}>
+            <p className={`${isMobile ? 'text-base' : ''} text-gray-600 dark:text-gray-400`}>
               Don't have an account?{' '}
               <Link
                 to="/register"
-                className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                className={`text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium ${isMobile ? 'min-h-[44px] flex items-center justify-center' : ''}`}
               >
                 Sign up
               </Link>

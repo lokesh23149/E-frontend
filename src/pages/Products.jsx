@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiFilter, FiGrid, FiList, FiSliders, FiPackage, FiSearch } from 'react-icons/fi';
+import { FiSliders, FiPackage, FiSearch } from 'react-icons/fi';
 import ProductCard from '../components/ProductCard';
 import Card from '../components/Card';
 import Loader from '../components/Loader';
 import { productService } from '../api/productService';
 
-const Products = () => {
+const Products = memo(() => {
+  const prefersReducedMotion = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, []);
+
   const [searchParams] = useSearchParams();
   const { category } = useParams();
   const [products, setProducts] = useState([]);
@@ -17,13 +19,25 @@ const Products = () => {
   const [filters, setFilters] = useState({
     categories: category ? [category] : searchParams.get('category') ? [searchParams.get('category')] : [],
     minPrice: 0,
-    maxPrice: 1000,
+    maxPrice: 10000,
     rating: 0,
     sortBy: 'name',
   });
+  const [isOffersFilter, setIsOffersFilter] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [viewMode, setViewMode] = useState('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile device for optimizations
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({
     currentPage: 0,
@@ -45,15 +59,16 @@ const Products = () => {
       setCategoriesLoading(true);
       try {
         const categoriesData = await productService.getCategories();
-        const allCategories = [...(categoriesData || []), 'offers'];
+        const allCategories = [...(categoriesData || [])];
+
         setCategories(allCategories);
+
       } catch (error) {
         console.error('Error fetching categories:', error);
-        setCategories(['offers']); // Fallback to offers only
+        setCategories([]); // Fallback to no categories
         setError('Failed to load categories. Please try again later.');
-      } finally {
-        setCategoriesLoading(false);
       }
+      setCategoriesLoading(false);
     };
 
     fetchCategories();
@@ -75,32 +90,47 @@ const Products = () => {
       setLoading(true);
       setError(null);
       try {
+        const isOffersFilter = filters.categories.includes('Offers and Deals');
         const params = {
-          page: pagination.currentPage,
-          size: pagination.size,
+          page: isOffersFilter ? 0 : pagination.currentPage,
+          size: isOffersFilter ? 1000 : pagination.size, // Fetch all for offers to filter client-side
           category: filters.categories.filter(cat => cat !== 'offers').length > 0 ? filters.categories.filter(cat => cat !== 'offers').join(',') : undefined,
           minPrice: filters.minPrice,
+          maxPrice: filters.maxPrice,
+          rating: filters.rating > 0 ? filters.rating : undefined,
+          sortBy: filters.sortBy,
           search: debouncedSearchTerm,
         };
 
         const response = await productService.getAllProducts(params);
         let filteredProducts = response.products || [];
 
-        // Filter for offers if 'offers' is selected
-        if (filters.categories.includes('offers')) {
+        // Filter for offers if 'Offers and Deals' is selected
+        if (isOffersFilter) {
           filteredProducts = filteredProducts.filter(product => product.discount && product.discount > 0);
         }
 
-        // Apply client-side pagination for offers filter
-        const totalFilteredElements = filteredProducts.length;
-        const startIndex = pagination.currentPage * pagination.size;
-        const endIndex = startIndex + pagination.size;
-        const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+        // Apply client-side pagination for offers filter or use backend pagination
+        let paginatedProducts;
+        let totalFilteredElements;
+        let totalPages;
+
+        if (isOffersFilter) {
+          totalFilteredElements = filteredProducts.length;
+          const startIndex = pagination.currentPage * pagination.size;
+          const endIndex = startIndex + pagination.size;
+          paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+          totalPages = Math.ceil(totalFilteredElements / pagination.size);
+        } else {
+          paginatedProducts = filteredProducts;
+          totalFilteredElements = response.totalElements || 0;
+          totalPages = response.totalPages || 0;
+        }
 
         setProducts(paginatedProducts);
         setPagination({
           currentPage: pagination.currentPage,
-          totalPages: Math.ceil(totalFilteredElements / pagination.size),
+          totalPages: totalPages,
           totalElements: totalFilteredElements,
           size: pagination.size
         });
@@ -128,9 +158,13 @@ const Products = () => {
         : [...prev.categories, category];
       return { ...prev, categories: newCategories };
     });
+    // Reset to first page when filters change
+    setPagination(prev => ({ ...prev, currentPage: 0 }));
   };
 
-  const clearFilters = () => {
+
+
+  const clearFilters = useCallback(() => {
     setFilters({
       categories: [],
       minPrice: 0,
@@ -138,7 +172,11 @@ const Products = () => {
       rating: 0,
       sortBy: 'name',
     });
-  };
+  }, []);
+
+  const handlePageChange = useCallback((page) => {
+    setPagination(prev => ({ ...prev, currentPage: page }));
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -153,9 +191,9 @@ const Products = () => {
           <AnimatePresence>
             {showFilters && (
               <motion.div
-                initial={{ opacity: 0, x: -300 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -300 }}
+                initial={prefersReducedMotion || isMobile ? {} : { opacity: 0, x: -300 }}
+                animate={prefersReducedMotion || isMobile ? {} : { opacity: 1, x: 0 }}
+                exit={prefersReducedMotion || isMobile ? {} : { opacity: 0, x: -300 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 className="lg:hidden fixed inset-0 z-50 lg:relative lg:inset-auto"
               >
@@ -183,7 +221,7 @@ const Products = () => {
                         </label>
                         {categoriesLoading ? (
                           <div className="space-y-2">
-                            {[1, 2, 3, 4].map((i) => (
+                            {[1, 2, 3, 4,5].map((i) => (
                               <div key={i} className="animate-pulse">
                                 <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-24"></div>
                               </div>
@@ -191,7 +229,7 @@ const Products = () => {
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            {categories.map((category) => (
+                        {categories.map((category) => (
                               <label key={category} className="flex items-center">
                                 <input
                                   type="checkbox"
@@ -220,7 +258,7 @@ const Products = () => {
                             <input
                               type="range"
                               min="0"
-                              max="1000"
+                              max="10000"
                               value={filters.minPrice}
                               onChange={(e) => handleFilterChange('minPrice', parseInt(e.target.value))}
                               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
@@ -321,12 +359,12 @@ const Products = () => {
                       <input
                         type="range"
                         min="0"
-                        max="1000"
+                        max="10000"
                         value={filters.minPrice}
                         onChange={(e) => handleFilterChange('minPrice', parseInt(e.target.value))}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
                       />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">INR ${filters.minPrice}</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">INR {filters.minPrice}</span>
                     </div>
                     <div>
                       <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Max Price</label>
@@ -338,7 +376,7 @@ const Products = () => {
                         onChange={(e) => handleFilterChange('maxPrice', parseInt(e.target.value))}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
                       />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">INR ${filters.maxPrice}</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">INR {filters.maxPrice}</span>
                     </div>
                   </div>
                 </div>
@@ -385,9 +423,9 @@ const Products = () => {
                 <div className="flex items-center justify-between sm:justify-start gap-4">
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="lg:hidden flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
+                    className="lg:hidden flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 min-h-[44px]"
                   >
-                    <FiSliders className="w-4 h-4" />
+                    <FiSliders className="w-5 h-5" />
                     <span className="font-medium">Filters</span>
                   </button>
                   <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -404,14 +442,14 @@ const Products = () => {
                       placeholder="Search products..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 w-64"
+                      className={`pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 font-medium ${isMobile ? 'w-full max-w-xs' : 'w-64'} min-h-[44px]`}
                     />
                   </div>
 
                   <select
                     value={filters.sortBy}
                     onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                    className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 font-medium"
+                    className="px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 font-medium min-h-[44px]"
                   >
                     {sortOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -473,8 +511,8 @@ const Products = () => {
                   <motion.div
                     key={product.id}
                     layout
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={prefersReducedMotion || isMobile ? {} : { opacity: 0, y: 30 }}
+                    animate={prefersReducedMotion || isMobile ? {} : { opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: index * 0.1 }}
                   >
                     <ProductCard product={product} />
@@ -484,7 +522,7 @@ const Products = () => {
             )}
 
             {/* Pagination */}
-            {pagination.totalPages > 1 && (
+            {pagination.totalElements > 0 && (
               <div className="mt-8 flex justify-center">
                 <div className="flex items-center space-x-2">
                   <button
@@ -495,14 +533,43 @@ const Products = () => {
                     Previous
                   </button>
 
-                  <span className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
-                    Page {pagination.currentPage + 1} of {pagination.totalPages}
-                  </span>
+                  {/* Numbered Page Buttons */}
+                  {useMemo(() => {
+                    const currentPage = pagination.currentPage;
+                    const totalPages = pagination.totalPages;
+                    const maxVisiblePages = 5;
+                    let startPage = Math.max(0, currentPage - Math.floor(maxVisiblePages / 2));
+                    let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
+
+                    if (endPage - startPage + 1 < maxVisiblePages) {
+                      startPage = Math.max(0, endPage - maxVisiblePages + 1);
+                    }
+
+                    const pages = [];
+                    for (let i = startPage; i <= endPage; i++) {
+                      pages.push(i);
+                    }
+
+                    return pages.map(page => (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        disabled={page === currentPage}
+                        className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
+                          page === currentPage
+                            ? 'bg-blue-600 text-white cursor-not-allowed'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {page + 1}
+                      </button>
+                    ));
+                  }, [pagination.currentPage, pagination.totalPages])}
 
                   <button
                     onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.min(prev.totalPages - 1, prev.currentPage + 1) }))}
                     disabled={pagination.currentPage === pagination.totalPages - 1}
-                    className="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                   >
                     Next
                   </button>
@@ -514,6 +581,8 @@ const Products = () => {
       </div>
     </div>
   );
-};
+});
+
+Products.displayName = 'Products';
 
 export default Products;

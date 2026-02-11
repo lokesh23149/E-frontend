@@ -8,7 +8,6 @@ const Header = () => {
   const { cart } = useCart();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);

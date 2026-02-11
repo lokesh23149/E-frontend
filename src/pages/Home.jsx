@@ -7,6 +7,11 @@ import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
 import { productService } from '../api/productService';
 
+// Check if user prefers reduced motion or is on mobile
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isMobile = window.innerWidth < 768;
+const shouldReduceMotion = prefersReducedMotion || isMobile;
+
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +20,7 @@ const Home = () => {
   // Hardcoded categories for Gym Section
   const categories = [
     { name: 'Accessories', icon: '🧢', count: '50+' },
-    { name: 'Clothing', icon: '👕', count: '100+' },
+    { name: 'Clothing', icon: '👕', count: '130+' },
     { name: 'Equipment', icon: '🏋️', count: '75+' },
     { name: 'Supplements', icon: '💊', count: '30+' },
   ];
@@ -41,8 +46,8 @@ const Home = () => {
 
 
   const stats = [
-    { icon: FiShoppingBag, value: '10K+', label: 'Products' },
-    { icon: FiUsers, value: '50K+', label: 'Customers' },
+    { icon: FiShoppingBag, value: '1K+', label: 'Products' },
+    { icon: FiUsers, value: '5K+', label: 'Customers' },
     { icon: FiStar, value: '4.8', label: 'Rating' },
   ];
 
@@ -59,9 +64,9 @@ const Home = () => {
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
+            animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+            transition={shouldReduceMotion ? {} : { duration: 0.8 }}
             className="text-center"
           >
             <h1 className="text-5xl  md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
@@ -100,9 +105,9 @@ const Home = () => {
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
+                initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
+                whileInView={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+                transition={shouldReduceMotion ? {} : { duration: 0.6, delay: index * 0.1 }}
                 viewport={{ once: true }}
                 className="text-center"
               >
@@ -125,9 +130,9 @@ const Home = () => {
       <section className="py-16 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
+            whileInView={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+            transition={shouldReduceMotion ? {} : { duration: 0.6 }}
             viewport={{ once: true }}
             className="text-center mb-12"
           >
@@ -143,11 +148,11 @@ const Home = () => {
             {categories.map((category, index) => (
               <motion.div
                 key={category.name}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
+                initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
+                whileInView={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+                transition={shouldReduceMotion ? {} : { duration: 0.6, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -8 }}
+                whileHover={shouldReduceMotion ? {} : { y: -8 }}
                 className="group cursor-pointer"
               >
                 <Link to={`/products?category=${encodeURIComponent(category.name)}`}>
@@ -203,9 +208,9 @@ const Home = () => {
       <section className="py-16 bg-white dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
+            whileInView={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+            transition={shouldReduceMotion ? {} : { duration: 0.6 }}
             viewport={{ once: true }}
             className="text-center mb-12"
           >
@@ -231,8 +236,8 @@ const Home = () => {
               {featuredProducts.map((product, index) => (
                 <motion.div
                   key={product.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={prefersReducedMotion || isMobile ? {} : { opacity: 0, y: 30 }}
+                  whileInView={prefersReducedMotion || isMobile ? {} : { opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
                   viewport={{ once: true }}
                 >
@@ -243,9 +248,9 @@ const Home = () => {
           )}
 
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
+            whileInView={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+            transition={shouldReduceMotion ? {} : { duration: 0.6, delay: 0.4 }}
             viewport={{ once: true }}
             className="text-center mt-12"
           >

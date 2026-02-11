@@ -40,19 +40,19 @@ const Contact = () => {
     {
       icon: FiMail,
       title: 'Email Us',
-      content: 'support@ecomstore.com',
+      content: 'lokiloki4693@email.com',
       description: 'Send us an email anytime!',
     },
     {
       icon: FiPhone,
       title: 'Call Us',
-      content: '+1 (555) 123-4567',
+      content: '+91 9361719237',
       description: 'Mon-Fri from 8am to 5pm.',
     },
     {
       icon: FiMapPin,
       title: 'Visit Us',
-      content: '123 Commerce St, City, State 12345',
+      content: 'ma nagar redhills ch -52',
       description: 'Come say hello at our office.',
     },
     {
