@@ -13,7 +13,7 @@ import Card from "../components/Card";
 import Loader from "../components/Loader";
 import { useCart } from "../hooks/useCart";
 import { useAuth } from "../context/AuthContext";
-
+import { motion } from "framer-motion";
 const CartPage = () => {
   const { cart, removeFromCart, clearCart, updateQuantity, placeOrder } =
     useCart();

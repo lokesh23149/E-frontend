@@ -4,121 +4,85 @@ import { useState } from 'react';
 import { FiMenu, FiX } from 'react-icons/fi';
 
 const NavBar = () => {
-  const { isAuthenticated, logout, user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const isAuthenticated = !!user;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
       logout();
       navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
-      // Force logout even if there's an error
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       navigate('/login');
     }
-    setIsMobileMenuOpen(false); // Close mobile menu after logout
+    setIsMobileMenuOpen(false);
   };
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
-    <nav className="bg-gray-900 p-4 border-b-4 border-b-yellow-500 shadow-lg relative">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="text-2xl font-bold hover:text-yellow-300 transition-colors">FITKART</Link>
+    <nav className="bg-gray-900 border-b-4 border-yellow-500 shadow-lg sticky top-0 z-40">
+      <div className="flex items-center justify-between py-3 px-4  mx-auto">
+        {/* Logo */}
+        <Link to="/" className="text-2xl font-bold text-white px-14 hover:text-yellow-300 transition-colors">
+          FITKART
+        </Link>
 
-        {/* Desktop Navigation - Hidden on mobile */}
-        <div className="hidden md:flex space-x-6 text-lg">
-          <Link to="/" className="hover:text-yellow-300 transition-colors">Home</Link>
-          <Link to="/offers" className="hover:text-yellow-300 transition-colors">Offers & Deals</Link>
-          <Link to="/cart" className="hover:text-yellow-300 transition-colors">Cart</Link>
-          {isAuthenticated && (
-            <>
-              {user?.role === 'ROLE_ADMIN' && (
-                <Link to="/dashboard" className="hover:text-yellow-300 transition-colors">Dashboard</Link>
-              )}
-              <Link to="/account" className="hover:text-yellow-300 transition-colors">Account</Link>
-            </>
-          )}
-          {isAuthenticated ? (
-            <button onClick={handleLogout} className="hover:text-yellow-300 transition-colors bg-transparent border-none">Logout</button>
-          ) : (
-            <Link to="/login" className="hover:text-yellow-300 transition-colors">Login</Link>
-          )}
-        </div>
-
-        {/* Mobile Menu Button - Hidden on desktop */}
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="md:hidden p-2 text-white hover:text-blue-300 transition-colors"
-          aria-label="Toggle mobile menu"
-        >
-          {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-        </button>
-      </div>
-
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-gray-900 border-t border-gray-700 shadow-lg z-50">
-          <div className="container mx-auto py-4 px-4 space-y-4">
-            <Link
-              to="/"
-              onClick={closeMobileMenu}
-              className="block py-3 px-4 text-lg hover:text-yellow-300 transition-colors hover:bg-gray-800 rounded-lg"
-            >
-              Home
-            </Link>
-            <Link
-              to="/offers"
-              onClick={closeMobileMenu}
-              className="block py-3 px-4 text-lg hover:text-yellow-300 transition-colors hover:bg-gray-800 rounded-lg"
-            >
-              Offers & Deals
-            </Link>
-            <Link
-              to="/cart"
-              onClick={closeMobileMenu}
-              className="block py-3 px-4 text-lg hover:text-yellow-300 transition-colors hover:bg-gray-800 rounded-lg"
-            >
-              Cart
-            </Link>
+        {/* Desktop Links and Mobile Button */}
+        <div className="flex items-center">
+          <div className="hidden lg:flex items-center space-x-6 text-lg">
+            <Link to="/" className="text-white hover:text-yellow-300 px-3 py-1 rounded-lg transition-colors">Home</Link>
+            <Link to="/offers" className="text-white hover:text-yellow-300 px-3 py-1 rounded-lg transition-colors">Offers & Deals</Link>
+            <Link to="/cart" className="text-white hover:text-yellow-300 px-3 py-1 rounded-lg transition-colors">Cart</Link>
             {isAuthenticated && (
               <>
                 {user?.role === 'ROLE_ADMIN' && (
-                  <Link
-                    to="/dashboard"
-                    onClick={closeMobileMenu}
-                    className="block py-3 px-4 text-lg hover:text-yellow-300 transition-colors hover:bg-gray-800 rounded-lg"
-                  >
-                    Dashboard
-                  </Link>
+                  <Link to="/dashboard" className="text-white hover:text-yellow-300 px-3 py-1 rounded-lg transition-colors">Dashboard</Link>
                 )}
-                <Link
-                  to="/account"
-                  onClick={closeMobileMenu}
-                  className="block py-3 px-4 text-lg hover:text-yellow-300 transition-colors hover:bg-gray-800 rounded-lg"
-                >
-                  Account
-                </Link>
+                <Link to="/account" className="text-white hover:text-yellow-300 px-3 py-1 rounded-lg transition-colors">Account</Link>
               </>
             )}
             {isAuthenticated ? (
-              <button
-                onClick={handleLogout}
-                className="block w-full text-left py-3 px-4 text-lg hover:text-yellow-300 transition-colors hover:bg-gray-800 rounded-lg"
-              >
-                Logout
-              </button>
+              <button onClick={handleLogout} className="text-white hover:text-red-400 px-3 py-1 rounded-lg transition-colors bg-transparent border-none">Logout</button>
             ) : (
-              <Link
-                to="/login"
-                onClick={closeMobileMenu}
-                className="block py-3 px-4 text-lg hover:text-yellow-300 transition-colors hover:bg-gray-800 rounded-lg"
-              >
-                Login
-              </Link>
+              <Link to="/login" className="text-white hover:text-yellow-300 px-3 py-1 rounded-lg transition-colors">Login</Link>
+            )}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="lg:hidden text-white p-2 hover:text-yellow-300 transition-colors"
+            aria-label="Toggle mobile menu"
+          >
+            {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden bg-gray-900 border-t border-gray-700 shadow-lg">
+          <div className="flex flex-col space-y-2 px-4 py-4">
+            <Link to="/" onClick={closeMobileMenu} className="text-white hover:text-yellow-300 px-3 py-2 rounded-lg transition-colors">Home</Link>
+            <Link to="/offers" onClick={closeMobileMenu} className="text-white hover:text-yellow-300 px-3 py-2 rounded-lg transition-colors">Offers & Deals</Link>
+            <Link to="/cart" onClick={closeMobileMenu} className="text-white hover:text-yellow-300 px-3 py-2 rounded-lg transition-colors">Cart</Link>
+            {isAuthenticated && (
+              <>
+                {user?.role === 'ROLE_ADMIN' && (
+                  <Link to="/dashboard" onClick={closeMobileMenu} className="text-white hover:text-yellow-300 px-3 py-2 rounded-lg transition-colors">Dashboard</Link>
+                )}
+                <Link to="/account" onClick={closeMobileMenu} className="text-white hover:text-yellow-300 px-3 py-2 rounded-lg transition-colors">Account</Link>
+              </>
+            )}
+            {isAuthenticated ? (
+              <button onClick={handleLogout} className="text-white hover:text-yellow-300 px-3 py-2 rounded-lg transition-colors bg-transparent border-none text-left w-full">Logout</button>
+            ) : (
+              <Link to="/login" onClick={closeMobileMenu} className="text-white hover:text-yellow-300 px-3 py-2 rounded-lg transition-colors">Login</Link>
             )}
           </div>
         </div>

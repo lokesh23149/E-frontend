@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FiShoppingBag, FiDollarSign, FiUsers, FiTrendingUp, FiPackage, FiClock } from 'react-icons/fi';
 import Card from '../components/Card';
 import Loader from '../components/Loader';
+import { getDashboardData } from '../api/dashboardService';
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
@@ -10,26 +11,39 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        // Mock data - replace with actual API calls
+        const data = await getDashboardData();
+        setStats({
+          totalOrders: data.totalOrders,
+          totalRevenue: data.totalRevenue,
+          totalCustomers: data.totalCustomers,
+          conversionRate: data.conversionRate,
+        });
+
+        setRecentOrders(data.recentOrders.map(order => ({
+          id: order.orderId,
+          customer: order.customerName,
+          amount: order.amount,
+          status: order.status,
+          date: order.createdAt,
+        })));
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        // Fallback to mock data if API fails
         setStats({
           totalOrders: 1250,
           totalRevenue: 45678.90,
           totalCustomers: 890,
           conversionRate: 3.2,
         });
-
         setRecentOrders([
           { id: 'ORD-001', customer: 'John Doe', amount: 299.99, status: 'completed', date: '2024-01-15' },
           { id: 'ORD-002', customer: 'Jane Smith', amount: 149.50, status: 'pending', date: '2024-01-14' },
           { id: 'ORD-003', customer: 'Bob Johnson', amount: 89.99, status: 'shipped', date: '2024-01-13' },
           { id: 'ORD-004', customer: 'Alice Brown', amount: 199.99, status: 'completed', date: '2024-01-12' },
         ]);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
       } finally {
         setLoading(false);
       }
@@ -48,7 +62,7 @@ const Dashboard = () => {
     },
     {
       title: 'Revenue',
-      value: `$${stats?.totalRevenue?.toLocaleString() || '0'}`,
+      value: `${stats?.totalRevenue?.toLocaleString() || '0'}`,
       icon: FiDollarSign,
       gradient: 'from-green-500 to-green-600',
       change: '+8.2%',
@@ -177,7 +191,7 @@ const Dashboard = () => {
                         {order.customer}
                       </td>
                       <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        ${order.amount}
+                        {order.amount}
                       </td>
                       <td className="py-4 px-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>

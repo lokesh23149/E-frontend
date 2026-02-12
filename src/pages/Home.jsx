@@ -6,6 +6,9 @@ import Card from '../components/Card';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
 import { productService } from '../api/productService';
+import bannerImage from '../assets/banner.webp';
+
+
 
 // Check if user prefers reduced motion or is on mobile
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -57,7 +60,7 @@ const Home = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 text-white" style={{
-        backgroundImage: `url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&h=1080&fit=crop')`,
+        backgroundImage: `url(${bannerImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}>

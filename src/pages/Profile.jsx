@@ -763,10 +763,8 @@ const Profile = () => {
                               <div className="relative aspect-square overflow-hidden bg-gray-50 dark:bg-gray-700">
                                 <img
                                   src={
-                                    item.product?.images?.[0]?.url ? (item.product.images[0].url.startsWith('http') ? item.product.images[0].url : `http://localhost:8080${item.product.images[0].url}`) : null
-                                      ? item.product.images[0].url.startsWith(
-                                          "http",
-                                        )
+                                    item.product?.images?.[0]?.url
+                                      ? item.product.images[0].url.startsWith("http")
                                         ? item.product.images[0].url
                                         : `http://localhost:8080${item.product.images[0].url}`
                                       : "/placeholder-product.jpg"

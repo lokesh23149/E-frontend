@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { FiHeart, FiShoppingCart, FiPlus, FiMinus } from "react-icons/fi";
 import { useState, useEffect, useCallback, memo } from "react";
 import Card from "./Card";
@@ -107,10 +108,10 @@ const ProductCard = memo(({ product }) => {
           </div>
 
           <div className="flex items-baseline space-x-2 mb-4">
-            <span className="font-bold text-xl">${product.price}</span>
+            <span className="font-bold text-xl">INR {product.price}</span>
             {product.originalPrice && (
               <span className="text-gray-400 line-through">
-                ${product.originalPrice}
+                {product.originalPrice}
               </span>
             )}
           </div>

@@ -45,7 +45,7 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/:id" element={<ProductDetails />} />
-          <Route path="/offer" element={<Offers />} />
+          <Route path="/offers" element={<Offers />} />
           <Route
             path="/about"
             element={
@@ -100,7 +100,6 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-          <Route path="/offers" element={<Offers />} />
           <Route
             path="/chatbot"
             element={

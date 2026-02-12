@@ -178,6 +178,8 @@ const Products = memo(() => {
     setPagination(prev => ({ ...prev, currentPage: page }));
   }, []);
 
+
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -503,7 +505,7 @@ const Products = memo(() => {
                 layout
                 className={`grid gap-6 ${
                   viewMode === 'grid'
-                    ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                    ? 'grid-cols-1 md:grid-cols-3 lg:grid-cols-4'
                     : 'grid-cols-1'
                 }`}
               >
@@ -532,39 +534,11 @@ const Products = memo(() => {
                   >
                     Previous
                   </button>
+ <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 px-4 py-2 bg-blue-600 text-white rounded-lg">
+        {pagination.currentPage + 1} 
+      </span>
+                  
 
-                  {/* Numbered Page Buttons */}
-                  {useMemo(() => {
-                    const currentPage = pagination.currentPage;
-                    const totalPages = pagination.totalPages;
-                    const maxVisiblePages = 5;
-                    let startPage = Math.max(0, currentPage - Math.floor(maxVisiblePages / 2));
-                    let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
-
-                    if (endPage - startPage + 1 < maxVisiblePages) {
-                      startPage = Math.max(0, endPage - maxVisiblePages + 1);
-                    }
-
-                    const pages = [];
-                    for (let i = startPage; i <= endPage; i++) {
-                      pages.push(i);
-                    }
-
-                    return pages.map(page => (
-                      <button
-                        key={page}
-                        onClick={() => handlePageChange(page)}
-                        disabled={page === currentPage}
-                        className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
-                          page === currentPage
-                            ? 'bg-blue-600 text-white cursor-not-allowed'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        {page + 1}
-                      </button>
-                    ));
-                  }, [pagination.currentPage, pagination.totalPages])}
 
                   <button
                     onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.min(prev.totalPages - 1, prev.currentPage + 1) }))}
