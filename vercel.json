@@ -5,16 +5,11 @@
   "outputDirectory": "dist",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://e-backend-r993.onrender.com/api/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+  "functions": {
+    "api/**": {
+      "runtime": "nodejs18.x"
     }
-  ],
+  },
   "headers": [
     {
       "source": "/(.*)",
