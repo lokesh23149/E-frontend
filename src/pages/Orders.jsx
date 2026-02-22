@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiPackage, FiTruck, FiCheckCircle, FiXCircle, FiEye, FiDownload, FiClock, FiX } from 'react-icons/fi';
 import Card from '../components/Card';
@@ -8,12 +9,14 @@ import OrderItemsList from '../components/OrderItemsList';
 import { orderService } from '../api/orderService';
 
 const Orders = () => {
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const isAdmin = user?.role === 'ROLE_ADMIN';
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -28,23 +31,21 @@ const Orders = () => {
     const fetchOrders = async () => {
       setLoading(true);
       try {
- 
-     
-
-        const userOrders = await orderService.getUserOrders();
+        const userOrders = isAdmin
+          ? await orderService.getAdminOrders()
+          : await orderService.getUserOrders();
         // Transform the backend data to match the frontend format
         const transformedOrders = userOrders.map(order => ({
-            
-          id:order.id,
-          referenceId: order.referenceId,
+          id: order.id,
+          referenceId: order.referenceId ?? order.referenceID,
           date: order.createdAt,
           status: order.status,
           total: order.total,
-          items: order.orderitems.map(item => ({
+          items: (order.orderitems || []).map(item => ({
             name: item.name,
             quantity: item.quantity,
             price: item.price,
-            image: item.image ? (item.image.startsWith('http') ? item.image : `http://localhost:8080${item.image}`) : null,
+            image: item.image ? (item.image.startsWith('http') ? item.image : `${import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'https://e-backend-r993.onrender.com'}${item.image}`) : null,
             productId: item.productId
           })),
           shipping: {
@@ -62,7 +63,7 @@ const Orders = () => {
     };
 
     fetchOrders();
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (location.state?.orderSuccess) {

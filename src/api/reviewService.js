@@ -1,11 +1,16 @@
 import api from './axios';
 
-const API_URL = "http://localhost:8080/api/products/reviews";
+const BASE = '/api/products/reviews';
 
 export const reviewService = {
   addReview: async (reviewData) => {
     try {
-      const response = await api.post(API_URL, reviewData);
+      const payload = {
+        productId: reviewData.productId ?? reviewData.productid,
+        ratings: reviewData.ratings,
+        comments: reviewData.comments
+      };
+      const response = await api.post(BASE, payload);
       return response.data;
     } catch (error) {
       console.error('Error adding review:', error);
@@ -15,11 +20,12 @@ export const reviewService = {
 
   getReviewsByProduct: async (productId) => {
     try {
-      const response = await api.get(`${API_URL}/${productId}`);
-      return response.data || [];
+      const response = await api.get(`${BASE}/${productId}`);
+      const data = response.data;
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('Error fetching reviews:', error);
-      throw error;
+      return [];
     }
   },
 };

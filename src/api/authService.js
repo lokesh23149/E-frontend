@@ -3,23 +3,29 @@ import api from './axios';
 export const authService = {
   login: async (credentials) => {
     try {
-      // Backend expects username and password, but frontend sends email and password
-      // Assuming email is used as username for now
+      // Backend expects username and password; frontend uses email as username
       const loginData = {
-        username: credentials.email,
+        username: credentials.email || credentials.username,
         password: credentials.password
       };
 
       const response = await api.post('/auth/login', loginData);
       const { token, user } = response.data;
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      if (!token) {
+        throw new Error('No token received');
+      }
 
-      return { user, token };
+      const userData = user || { email: loginData.username, username: loginData.username };
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      return { user: userData, token };
     } catch (error) {
       console.error('Login error:', error);
-      throw new Error(error.response?.data?.error || 'Login failed');
+      const err = new Error(error.response?.data?.error || error.response?.data?.message || error.message || 'Login failed');
+      err.response = error.response;
+      throw err;
     }
   },
 
@@ -63,15 +69,16 @@ export const authService = {
 
   updateProfile: async (profileData) => {
     try {
+      // Backend accepts firstName, lastName, email, phone, address, city, state, zipCode
       const response = await api.put('/auth/profile', profileData);
-      // Update local storage user data
-      const currentUser = authService.getCurrentUser();
-      const updatedUser = { ...currentUser, ...profileData };
+      // Update local storage user data with response
+      const updatedUser = response.data?.user || { ...authService.getCurrentUser(), ...profileData };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       return response.data;
     } catch (error) {
       console.error('Update profile error:', error);
-      throw new Error(error.response?.data?.error || 'Failed to update profile');
+      const msg = error.response?.data?.error || error.response?.data?.message || 'Failed to update profile';
+      throw new Error(typeof msg === 'string' ? msg : 'Failed to update profile');
     }
   },
 

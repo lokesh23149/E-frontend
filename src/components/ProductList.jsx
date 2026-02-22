@@ -1,4 +1,5 @@
 import { useState, useEffect, memo } from 'react';
+import { motion } from 'framer-motion';
 import { FiGrid, FiList } from 'react-icons/fi';
 import ProductCard from './ProductCard';
 import ProductSkeleton from './ProductSkeleton';

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiShoppingBag, FiDollarSign, FiUsers, FiTrendingUp, FiPackage, FiClock } from 'react-icons/fi';
 import Card from '../components/Card';
@@ -16,34 +17,23 @@ const Dashboard = () => {
       try {
         const data = await getDashboardData();
         setStats({
-          totalOrders: data.totalOrders,
-          totalRevenue: data.totalRevenue,
-          totalCustomers: data.totalCustomers,
-          conversionRate: data.conversionRate,
+          totalOrders: data.totalOrders ?? 0,
+          totalRevenue: data.totalRevenue ?? 0,
+          totalCustomers: data.totalCustomers ?? 0,
+          conversionRate: data.conversionRate ?? 0,
         });
 
-        setRecentOrders(data.recentOrders.map(order => ({
-          id: order.orderId,
-          customer: order.customerName,
-          amount: order.amount,
-          status: order.status,
-          date: order.createdAt,
+        setRecentOrders((data.recentOrders || []).map(order => ({
+          id: order.orderId || order.id,
+          customer: order.customerName || order.customer || '—',
+          amount: order.amount != null ? `INR ${Number(order.amount).toFixed(2)}` : '—',
+          status: order.status || 'pending',
+          date: order.createdAt || order.date,
         })));
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        // Fallback to mock data if API fails
-        setStats({
-          totalOrders: 1250,
-          totalRevenue: 45678.90,
-          totalCustomers: 890,
-          conversionRate: 3.2,
-        });
-        setRecentOrders([
-          { id: 'ORD-001', customer: 'John Doe', amount: 299.99, status: 'completed', date: '2024-01-15' },
-          { id: 'ORD-002', customer: 'Jane Smith', amount: 149.50, status: 'pending', date: '2024-01-14' },
-          { id: 'ORD-003', customer: 'Bob Johnson', amount: 89.99, status: 'shipped', date: '2024-01-13' },
-          { id: 'ORD-004', customer: 'Alice Brown', amount: 199.99, status: 'completed', date: '2024-01-12' },
-        ]);
+        setStats(null);
+        setRecentOrders([]);
       } finally {
         setLoading(false);
       }
@@ -62,7 +52,7 @@ const Dashboard = () => {
     },
     {
       title: 'Revenue',
-      value: `${stats?.totalRevenue?.toLocaleString() || '0'}`,
+      value: `INR ${(stats?.totalRevenue ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
       icon: FiDollarSign,
       gradient: 'from-green-500 to-green-600',
       change: '+8.2%',
@@ -98,6 +88,17 @@ const Dashboard = () => {
 
   if (loading) {
     return <Loader className="py-16" />;
+  }
+
+  if (!stats && recentOrders.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">Unable to load dashboard data.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-500">Ensure the backend is running.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -149,9 +150,9 @@ const Dashboard = () => {
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 Recent Orders
               </h2>
-              <button className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium">
+              <Link to="/account/orders" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium">
                 View All
-              </button>
+              </Link>
             </div>
 
             <div className="overflow-x-auto">

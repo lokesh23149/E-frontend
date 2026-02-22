@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiArrowLeft, FiStar, FiMinus, FiPlus, FiShoppingCart, FiTruck, FiShield, FiRotateCcw, FiHeart, FiSend, FiPercent, FiClock } from 'react-icons/fi';
 import Card from '../components/Card';
+import LazyImage from '../components/LazyImage';
 
 import Loader from '../components/Loader';import { productService } from '../api/productService';
 import { reviewService } from '../api/reviewService';
@@ -173,13 +174,10 @@ const ProductDetails = () => {
           >
             <Card className="overflow-hidden">
               <div className="aspect-square relative">
-                <img
-                  src={product.images?.[selectedImage]?.url ? (product.images[selectedImage].url.startsWith('http') ? product.images[selectedImage].url : `http://localhost:8080${product.images[selectedImage].url}`) : "/placeholder-product.jpg"}
+                <LazyImage
+                  src={product.images?.[selectedImage]?.url || "/placeholder-product.jpg"}
                   alt={product.name}
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.src = "/placeholder-product.jpg";
-                  }}
                 />
                 {product.discount && (
                   <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -195,19 +193,16 @@ const ProductDetails = () => {
                     <button
                       key={index}
                       onClick={() => setSelectedImage(index)}
-                      className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors duration-200 ${
+                      className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors duration-200 shrink-0 ${
                         selectedImage === index
                           ? 'border-blue-500'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     >
-                      <img
-                        src={image.url ? (image.url.startsWith('http') ? image.url : `http://localhost:8080${image.url}`) : "/placeholder-product.jpg"}
+                      <LazyImage
+                        src={image.url || "/placeholder-product.jpg"}
                         alt={`${product.name} ${index + 1}`}
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.src = "/placeholder-product.jpg";
-                        }}
                       />
                     </button>
                   ))}
@@ -254,14 +249,18 @@ const ProductDetails = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 flex-wrap gap-2">
               <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                INR {product.price}
+                INR {product.discount ? (product.price * (1 - product.discount / 100)).toFixed(0) : product.price}
               </span>
-              {product.originalPrice && (
-                <span className="text-xl text-gray-500 line-through">
-                  INR {product.originalPrice}
-                </span>
+              {product.discount > 0 && (
+                <>
+                  <span className="text-xl text-gray-500 line-through">INR {product.price}</span>
+                  <span className="text-red-600 dark:text-red-400 font-medium">-{product.discount}% OFF</span>
+                </>
+              )}
+              {product.originalPrice && !product.discount && (
+                <span className="text-xl text-gray-500 line-through">INR {product.originalPrice}</span>
               )}
             </div>
 

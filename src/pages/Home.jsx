@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowRight, FiStar, FiUsers, FiShoppingBag } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
@@ -10,49 +10,60 @@ import bannerImage from '../assets/banner.webp';
 
 
 
-// Check if user prefers reduced motion or is on mobile
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const isMobile = window.innerWidth < 768;
-const shouldReduceMotion = prefersReducedMotion || isMobile;
-
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Hardcoded categories for Gym Section
-  const categories = [
-    { name: 'Accessories', icon: '🧢', count: '50+' },
-    { name: 'Clothing', icon: '👕', count: '130+' },
-    { name: 'Equipment', icon: '🏋️', count: '75+' },
-    { name: 'Supplements', icon: '💊', count: '30+' },
-  ];
+  // Check if user prefers reduced motion
+  const prefersReducedMotion = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, []);
+  
+  // Dynamic mobile detection with resize listener
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  const shouldReduceMotion = prefersReducedMotion || isMobile;
+
+  const [categories, setCategories] = useState([]);
+  const [stats, setStats] = useState({ products: 0, customers: null, avgRating: null });
+
+  const categoryIcons = { Accessories: '🧢', Clothing: '👕', Equipment: '🏋️', Supplements: '💊' };
 
   useEffect(() => {
-    const fetchFeaturedProducts = async () => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const response = await productService.getAllProducts({ limit: 8 });
-        setFeaturedProducts(response.products || []);
+        const [productsRes, categoriesData] = await Promise.all([
+          productService.getAllProducts({ limit: 8 }),
+          productService.getCategories().catch(() => []),
+        ]);
+        setFeaturedProducts(productsRes.products || []);
+        setCategories(categoriesData || []);
+        setStats({
+          products: productsRes.totalElements ?? 0,
+          customers: null,
+          avgRating: null,
+        });
         setError(null);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setError('Unable to load products. Please check if the backend is running.');
-        setFeaturedProducts([]); // Ensure it's an empty array
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        const backendUrl = import.meta.env.VITE_API_URL || 'https://e-backend-r993.onrender.com';
+        setError(`Unable to load data. Please check if the backend is running at ${backendUrl}`);
+        setFeaturedProducts([]);
+        setCategories([]);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchFeaturedProducts();
+    fetchData();
   }, []);
-
-
-
-  const stats = [
-    { icon: FiShoppingBag, value: '1K+', label: 'Products' },
-    { icon: FiUsers, value: '5K+', label: 'Customers' },
-    { icon: FiStar, value: '4.8', label: 'Rating' },
-  ];
 
 
 
@@ -101,11 +112,15 @@ const Home = () => {
         <div className="absolute bottom-20 right-10 w-32 h-32 bg-white/10 rounded-full blur-xl" />
       </section>
 
-      {/* Stats Section */}
+      {/* Stats Section - from backend */}
       <section className="py-16 bg-white dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {stats.map((stat, index) => (
+            {[
+              { icon: FiShoppingBag, value: stats.products, label: 'Products' },
+              { icon: FiUsers, value: stats.customers ?? '—', label: 'Customers' },
+              { icon: FiStar, value: stats.avgRating ?? '—', label: 'Rating' },
+            ].map((stat, index) => (
               <motion.div
                 key={stat.label}
                 initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
@@ -148,9 +163,9 @@ const Home = () => {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category, index) => (
+            {categories.map((cat, index) => (
               <motion.div
-                key={category.name}
+                key={cat}
                 initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
                 whileInView={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
                 transition={shouldReduceMotion ? {} : { duration: 0.6, delay: index * 0.1 }}
@@ -158,19 +173,19 @@ const Home = () => {
                 whileHover={shouldReduceMotion ? {} : { y: -8 }}
                 className="group cursor-pointer"
               >
-                <Link to={`/products?category=${encodeURIComponent(category.name)}`}>
+                <Link to={`/products?category=${encodeURIComponent(cat)}`}>
                   <Card className="text-center overflow-hidden">
                     <div className="relative h-32 mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20">
                       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300" />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-4xl">{category.icon}</span>
+                        <span className="text-4xl">{categoryIcons[cat] || '📦'}</span>
                       </div>
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                      {category.name}
+                      {cat}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400 text-sm">
-                      {category.count} products
+                      products
                     </p>
                   </Card>
                 </Link>
@@ -231,7 +246,7 @@ const Home = () => {
             <div className="text-center py-16">
               <div className="text-red-500 text-lg mb-4">{error}</div>
               <p className="text-gray-600 dark:text-gray-400">
-                Please ensure the backend server is running on localhost:8080
+                Please ensure the backend server is running on {import.meta.env.VITE_API_URL || 'https://e-backend-r993.onrender.com'}
               </p>
             </div>
           ) : (
@@ -239,8 +254,8 @@ const Home = () => {
               {featuredProducts.map((product, index) => (
                 <motion.div
                   key={product.id}
-                  initial={prefersReducedMotion || isMobile ? {} : { opacity: 0, y: 30 }}
-                  whileInView={prefersReducedMotion || isMobile ? {} : { opacity: 1, y: 0 }}
+                  initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
+                  whileInView={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
                   viewport={{ once: true }}
                 >

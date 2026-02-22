@@ -59,9 +59,7 @@ const Products = memo(() => {
       setCategoriesLoading(true);
       try {
         const categoriesData = await productService.getCategories();
-        const allCategories = [...(categoriesData || [])];
-
-        setCategories(allCategories);
+        setCategories(categoriesData || []);
 
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -73,6 +71,7 @@ const Products = memo(() => {
 
     fetchCategories();
   }, []);
+
 
   // Debounce search term
   useEffect(() => {
@@ -90,11 +89,10 @@ const Products = memo(() => {
       setLoading(true);
       setError(null);
       try {
-        const isOffersFilter = filters.categories.includes('Offers and Deals');
         const params = {
-          page: isOffersFilter ? 0 : pagination.currentPage,
-          size: isOffersFilter ? 1000 : pagination.size, // Fetch all for offers to filter client-side
-          category: filters.categories.filter(cat => cat !== 'offers').length > 0 ? filters.categories.filter(cat => cat !== 'offers').join(',') : undefined,
+          page: pagination.currentPage,
+          size: pagination.size,
+          category: filters.categories.length > 0 ? filters.categories.join(',') : undefined,
           minPrice: filters.minPrice,
           maxPrice: filters.maxPrice,
           rating: filters.rating > 0 ? filters.rating : undefined,
@@ -103,29 +101,9 @@ const Products = memo(() => {
         };
 
         const response = await productService.getAllProducts(params);
-        let filteredProducts = response.products || [];
-
-        // Filter for offers if 'Offers and Deals' is selected
-        if (isOffersFilter) {
-          filteredProducts = filteredProducts.filter(product => product.discount && product.discount > 0);
-        }
-
-        // Apply client-side pagination for offers filter or use backend pagination
-        let paginatedProducts;
-        let totalFilteredElements;
-        let totalPages;
-
-        if (isOffersFilter) {
-          totalFilteredElements = filteredProducts.length;
-          const startIndex = pagination.currentPage * pagination.size;
-          const endIndex = startIndex + pagination.size;
-          paginatedProducts = filteredProducts.slice(startIndex, endIndex);
-          totalPages = Math.ceil(totalFilteredElements / pagination.size);
-        } else {
-          paginatedProducts = filteredProducts;
-          totalFilteredElements = response.totalElements || 0;
-          totalPages = response.totalPages || 0;
-        }
+        const paginatedProducts = response.products || [];
+        const totalFilteredElements = response.totalElements || 0;
+        const totalPages = response.totalPages || 0;
 
         setProducts(paginatedProducts);
         setPagination({
@@ -183,11 +161,6 @@ const Products = memo(() => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-
-
-
-
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
           <AnimatePresence>
@@ -223,7 +196,7 @@ const Products = memo(() => {
                         </label>
                         {categoriesLoading ? (
                           <div className="space-y-2">
-                            {[1, 2, 3, 4,5].map((i) => (
+                            {[1, 2, 3, 4].map((i) => (
                               <div key={i} className="animate-pulse">
                                 <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-24"></div>
                               </div>
@@ -515,7 +488,7 @@ const Products = memo(() => {
                     layout
                     initial={prefersReducedMotion || isMobile ? {} : { opacity: 0, y: 30 }}
                     animate={prefersReducedMotion || isMobile ? {} : { opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                    transition={{ duration: 0.4, delay: Math.min(index * 0.03, 0.3) }}
                   >
                     <ProductCard product={product} />
                   </motion.div>

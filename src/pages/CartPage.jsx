@@ -10,6 +10,7 @@ import {
   FiUser,
 } from "react-icons/fi";
 import Card from "../components/Card";
+import LazyImage from "../components/LazyImage";
 import Loader from "../components/Loader";
 import { useCart } from "../hooks/useCart";
 import { useAuth } from "../context/AuthContext";
@@ -203,18 +204,13 @@ const CartPage = () => {
                     <Card className="p-6">
                       <div className="flex items-center space-x-4">
                         {/* Product Image */}
-                        <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                          <img
+                        <div className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                          <LazyImage
                             src={
-                              item.images?.[0]?.url ? (item.images[0].url.startsWith('http') ? item.images[0].url : `http://localhost:8080${item.images[0].url}`) :
-                              item.image ? (item.image.startsWith('http') ? item.image : `http://localhost:8080${item.image}`) :
-                              "/placeholder-product.jpg"
+                              item.images?.[0]?.url || item.image || "/placeholder-product.jpg"
                             }
                             alt={item.name}
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.src = "/placeholder-product.jpg";
-                            }}
                           />
                         </div>
 

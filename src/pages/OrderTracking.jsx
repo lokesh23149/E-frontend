@@ -29,13 +29,22 @@ const OrderTracking = () => {
   const fetchTrackingInfo = async () => {
     try {
       setLoading(true);
-      const tracking = await orderService.getOrderTracking(orderId);
-      const orderDetails = await orderService.getOrder(orderId);
+      setError(null);
+      const refId = orderId?.trim();
+      if (!refId) {
+        setError('Invalid order ID');
+        return;
+      }
+      const [tracking, orderDetails] = await Promise.all([
+        orderService.getOrderTracking(refId),
+        orderService.getOrder(refId)
+      ]);
       setTrackingInfo(tracking);
       setOrder(orderDetails);
-    } catch (error) {
-      console.error('Error fetching tracking info:', error);
-      setError('Failed to load tracking information. Please try again.');
+    } catch (err) {
+      console.error('Error fetching tracking info:', err);
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message;
+      setError(msg || 'Failed to load tracking information. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -60,7 +69,8 @@ const OrderTracking = () => {
 
   const getStatusSteps = (status) => {
     const steps = [
-      { key: 'processing', label: 'Order Placed', description: 'Your order has been received and is being processed.' },
+      { key: 'pending', label: 'Order Placed', description: 'Your order has been received and is being processed.' },
+      { key: 'processing', label: 'Processing', description: 'Your order is being prepared for shipment.' },
       { key: 'shipped', label: 'Shipped', description: 'Your order has been shipped and is on its way.' },
       { key: 'delivered', label: 'Delivered', description: 'Your order has been successfully delivered.' },
     ];
@@ -109,7 +119,7 @@ const OrderTracking = () => {
             The order you're looking for doesn't exist or you don't have permission to view it.
           </p>
           <button
-            onClick={() => navigate('/orders')}
+            onClick={() => navigate('/account/orders')}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Back to Orders
@@ -156,7 +166,7 @@ const OrderTracking = () => {
                     Current Status: {trackingInfo.status?.charAt(0).toUpperCase() + trackingInfo.status?.slice(1)}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Order placed on {new Date(trackingInfo.createdAt).toLocaleDateString()}
+                    Order placed on {trackingInfo.createdAt ? new Date(trackingInfo.createdAt).toLocaleDateString() : '—'}
                   </p>
                 </div>
               </div>
@@ -221,7 +231,7 @@ const OrderTracking = () => {
                 </h4>
                 <div className="space-y-2 text-sm">
                   <p><span className="font-medium">Order ID:</span> {trackingInfo.orderId}</p>
-                  <p><span className="font-medium">Total Amount:</span> ${order.total?.toFixed(2) || '0.00'}</p>
+                  <p><span className="font-medium">Total Amount:</span> INR {order.total?.toFixed(2) || '0.00'}</p>
                   <p><span className="font-medium">Items:</span> {order.orderitems?.length || 0}</p>
                 </div>
               </div>
@@ -241,12 +251,31 @@ const OrderTracking = () => {
               </div>
             </div>
 
-            {/* Order Items */}
+            {/* Order Items - Products you ordered */}
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                Items in this order
+              <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Products in this order ({(order.orderitems || order.orderItems)?.length || 0})
               </h4>
-              <OrderItemsList items={order.orderitems || []} showTotal={true} />
+              {((order.orderitems || order.orderItems)?.length > 0) ? (
+                <OrderItemsList items={(order.orderitems || order.orderItems || []).map(item => {
+                  const apiBase = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'https://e-backend-r993.onrender.com';
+                  const imageUrl = item.image?.startsWith('http')
+                    ? item.image
+                    : item.image
+                      ? `${apiBase}${item.image.startsWith('/') ? '' : '/'}${item.image}`
+                      : null;
+                  return {
+                    ...item,
+                    productId: item.product?.id ?? item.productId,
+                    image: imageUrl,
+                    name: item.name || 'Product',
+                    quantity: item.quantity ?? 0,
+                    price: item.price ?? 0,
+                  };
+                })} showTotal={true} />
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400 py-4">No items found for this order.</p>
+              )}
             </div>
           </Card>
         </motion.div>

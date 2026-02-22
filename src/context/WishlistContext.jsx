@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { wishlistService } from '../api/wishlistService';
+import { useAuth } from './AuthContext';
 
 const WishlistContext = createContext();
 
@@ -12,20 +13,40 @@ export const useWishlist = () => {
 };
 
 export const WishlistProvider = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // Load wishlist on mount if needed
-    // Assuming user is authenticated, load wishlist
-    getWishlist();
+  const getWishlist = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await wishlistService.getWishlist();
+      setWishlist(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setWishlist([]);
+      if (error.response?.status !== 401) {
+        console.error('Error loading wishlist:', error);
+      }
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      getWishlist();
+    } else {
+      setWishlist([]);
+    }
+  }, [isAuthenticated, user?.id, getWishlist]);
+
   const addToWishlist = async (productId) => {
+    if (!isAuthenticated) {
+      throw new Error('Please login to add to wishlist');
+    }
     try {
       setLoading(true);
       await wishlistService.addToWishlist(productId);
-      // Refresh wishlist after adding
       await getWishlist();
     } catch (error) {
       throw error;
@@ -35,10 +56,10 @@ export const WishlistProvider = ({ children }) => {
   };
 
   const removeFromWishlist = async (productId) => {
+    if (!isAuthenticated) return;
     try {
       setLoading(true);
       await wishlistService.removeFromWishlist(productId);
-      // Refresh wishlist after removing
       await getWishlist();
     } catch (error) {
       throw error;
@@ -47,20 +68,9 @@ export const WishlistProvider = ({ children }) => {
     }
   };
 
-  const getWishlist = async () => {
-    try {
-      setLoading(true);
-      const data = await wishlistService.getWishlist();
-      setWishlist(data); // data is array of wishlist items with product details
-    } catch (error) {
-      console.error('Error loading wishlist:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const isInWishlist = (productId) => {
-    return wishlist.some(item => item.product.id === productId);
+    if (!productId) return false;
+    return wishlist.some((item) => item.product?.id === productId || item.product?.id == productId);
   };
 
   const value = {

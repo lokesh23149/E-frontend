@@ -1,6 +1,8 @@
 import api from './axios';
 
-const API_URL = "http://localhost:8080/api/products";
+// Use relative URL for development (proxy), full URL for production
+const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '';
+const API_URL = `${API_BASE}/api/products`;
 
 export const productService = {
   getAllProducts: async (params = {}) => {
@@ -27,16 +29,19 @@ export const productService = {
 
       return {
         products: products.map(product => {
-          const mappedImages = (product.images || []).map(img => ({
-            ...img,
-            url: img.url.startsWith('http') ? img.url : `http://localhost:8080/api/products/images/${img.url.split('/').pop()}`
-          }));
+          const mappedImages = (product.images || []).map(img => {
+            const url = img?.url || '';
+            return {
+              ...img,
+              url: url.startsWith('http') ? url : `${API_BASE}/api/products/images/${url.split('/').pop()}`
+            };
+          });
           return {
             ...product,
-          description: product.description, // Map description to description
-            reviewCount: product.numofreviews, // Map numofreviews to reviewCount
+            description: product.discripsion || product.description,
+            reviewCount: product.numofreviews ?? product.reviewCount ?? 0,
             images: mappedImages,
-            image: mappedImages[0]?.url ? (mappedImages[0].url.startsWith('http') ? mappedImages[0].url : `http://localhost:8080/api/products/images/${mappedImages[0].url.split('/').pop()}`) : '/placeholder-product.jpg',
+            image: mappedImages[0]?.url ? (mappedImages[0].url.startsWith('http') ? mappedImages[0].url : `${API_BASE}/api/products/images/${(mappedImages[0].url || '').split('/').pop()}`) : '/placeholder-product.jpg',
             discount: product.discount || 0
           };
         }),
@@ -63,8 +68,9 @@ export const productService = {
 
   getProductsByCategory: async (category) => {
     try {
-      const response = await api.get(`${API_URL}/category/${category}`);
-      return response.data || [];
+      const response = await api.get(API_URL, { params: { category, size: 1000 } });
+      const data = response.data || {};
+      return data.products || [];
     } catch (error) {
       console.error('Error fetching products by category:', error);
       throw error;
@@ -74,7 +80,7 @@ export const productService = {
   getProductById: async (id) => {
     try {
       // Validate product ID before API call
-      if (!id || id.trim() === '' || isNaN(id)) {
+      if (!id || String(id).trim() === '' || isNaN(Number(id))) {
         throw new Error('Invalid product ID');
       }
 
@@ -85,10 +91,13 @@ export const productService = {
       }
       return {
         ...product,
-        description: product.description, // Map description to description
-        reviewCount: product.numofreviews, // Map numofreviews to reviewCount
-        reviews: product.reviews || [], // Map reviews
-        images: product.images || []
+        description: product.discripsion || product.description,
+        reviewCount: product.numofreviews ?? product.reviewCount ?? 0,
+        reviews: product.reviews || [],
+        images: (product.images || []).map(img => ({
+          ...img,
+          url: (img?.url || '').startsWith('http') ? img.url : `${API_BASE}/api/products/images/${(img?.url || '').split('/').pop()}`
+        }))
       };
     } catch (error) {
       console.error('Error fetching product:', error);

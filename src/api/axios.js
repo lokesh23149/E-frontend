@@ -1,9 +1,12 @@
 import axios from 'axios';
 
+// Use relative URL for development (proxy), full URL for production
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '/api';
+
 // Create axios instance
 const api = axios.create({
-  baseURL: 'http://localhost:8080',
-  timeout: 5000,
+  baseURL: API_BASE_URL,
+  timeout: 25000,
   headers: {
     'Content-Type': 'application/json',
   },

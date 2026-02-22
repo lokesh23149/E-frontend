@@ -19,9 +19,11 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
+import { authService } from "../api/authService";
 import { orderService } from "../api/orderService";
 import { useWishlist } from "../context/WishlistContext";
 import Card from "../components/Card";
+import LazyImage from "../components/LazyImage";
 import Loader from "../components/Loader";
 
 const Profile = () => {
@@ -52,13 +54,23 @@ const Profile = () => {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState("");
 
   useEffect(() => {
     if (user) {
+      // Derive firstName/lastName from name if not present (backward compat)
+      let firstName = user.firstName || "";
+      let lastName = user.lastName || "";
+      if (!firstName && !lastName && user.name) {
+        const parts = String(user.name).trim().split(/\s+/);
+        firstName = parts[0] || "";
+        lastName = parts.slice(1).join(" ") || "";
+      }
       setFormData({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        email: user.email || "",
+        firstName,
+        lastName,
+        email: user.email || user.gmail || "",
         phone: user.phone || "",
         address: user.address || "",
         city: user.city || "",
@@ -120,18 +132,21 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
+    setSaveError("");
+    setSaveSuccess("");
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
-      // Display errors (you can add state for errors if needed)
-      alert(Object.values(errors).join('\n'));
+      setSaveError(Object.values(errors).join(". "));
       return;
     }
 
     setLoading(true);
     try {
       await updateProfile(formData);
+      setSaveSuccess("Profile updated successfully!");
       setIsEditing(false);
     } catch (error) {
+      setSaveError(error.message || "Failed to update profile");
       console.error("Error updating profile:", error);
     } finally {
       setLoading(false);
@@ -139,11 +154,20 @@ const Profile = () => {
   };
 
   const handleCancel = () => {
+    setSaveError("");
+    setSaveSuccess("");
     if (user) {
+      let firstName = user.firstName || "";
+      let lastName = user.lastName || "";
+      if (!firstName && !lastName && user.name) {
+        const parts = String(user.name).trim().split(/\s+/);
+        firstName = parts[0] || "";
+        lastName = parts.slice(1).join(" ") || "";
+      }
       setFormData({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        email: user.email || "",
+        firstName,
+        lastName,
+        email: user.email || user.gmail || "",
         phone: user.phone || "",
         address: user.address || "",
         city: user.city || "",
@@ -434,6 +458,16 @@ const Profile = () => {
                       </div>
                     </div>
                   </div>
+                  {saveError && (
+                    <div className="mt-4 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">
+                      {saveError}
+                    </div>
+                  )}
+                  {saveSuccess && (
+                    <div className="mt-4 p-3 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm">
+                      {saveSuccess}
+                    </div>
+                  )}
                   <div className="mt-6 flex gap-3">
                     {!isEditing ? (
                       <motion.button
@@ -670,7 +704,7 @@ const Profile = () => {
                                   <div className="flex space-x-2 ml-4">
                                     <motion.button
                                       whileHover={{ scale: 1.05 }}
-                                      whileTap={{ scale: 0.95 }}///account/orders/track/${orderRef}
+                                      whileTap={{ scale: 0.95 }}
                                       onClick={() => navigate(`/account/orders/track/${order.referenceId}`)}
                                       className="inline-flex items-center px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors duration-200"
                                     >
@@ -761,19 +795,14 @@ const Profile = () => {
                             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:-translate-y-1">
                               {/* Product Image */}
                               <div className="relative aspect-square overflow-hidden bg-gray-50 dark:bg-gray-700">
-                                <img
+                                <LazyImage
                                   src={
-                                    item.product?.images?.[0]?.url
-                                      ? item.product.images[0].url.startsWith("http")
-                                        ? item.product.images[0].url
-                                        : `http://localhost:8080${item.product.images[0].url}`
-                                      : "/placeholder-product.jpg"
+                                    item.product?.images?.[0]?.url ||
+                                    item.product?.image ||
+                                    "/placeholder-product.jpg"
                                   }
                                   alt={item.product?.name}
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                  onError={(e) => {
-                                    e.target.src = "/placeholder-product.jpg";
-                                  }}
                                 />
                                 {/* Remove from wishlist button */}
                                 <button
