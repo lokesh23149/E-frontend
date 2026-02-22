@@ -17,7 +17,6 @@ import Dashboard from "./pages/Dashboard";
 import Orders from "./pages/Orders";
 import OrderTracking from "./pages/OrderTracking";
 import OrderConfirmation from "./pages/OrderConfirmation";
-
 import Profile from "./pages/Profile";
 import Offers from "./pages/Offers";
 import ChatBot from "./pages/chatBot";
